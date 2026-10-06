@@ -317,6 +317,14 @@ def _run_scan(
     cache = _make_cache(config, mods_dir, bool(args.refresh))
     detector = Detector(config=config, cache=cache, logger=_Logger(console))
 
+    limit = int(getattr(args, "limit", 0) or 0)
+    if limit > 0:
+        # 提醒一下：--limit 导出的报告只含这 N 条，会覆盖同目录下的正式报告。
+        # （实测踩过：跑完 --limit 12 再去测准确率，基准样本一下少了一大半）
+        console.warn(
+            f"！--limit {limit}：本次只扫描前 {limit} 个 jar，导出的报告也只包含这些条目，"
+            f"会覆盖同目录下已有的正式报告。建议配合 --out-dir 指到临时目录。"
+        )
     console.info(f"扫描目录：{mods_dir}")
     started = time.monotonic()
     report = detector.scan(mods_dir, progress=console.progress, limit=int(getattr(args, "limit", 0) or 0))

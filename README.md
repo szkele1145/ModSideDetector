@@ -143,6 +143,26 @@ python -m src cache --clear
 
 **刻意不做的事**：不扫字节码。`HANDOFF.md` 实测字节码扫描准确率仅约 55%（`Axiom`、`Flashback`、`Xaero 小地图` 全被误判）。
 
+### 验收实测
+
+| 项目 | 实测结果 |
+|---|---|
+| 人工确认基准集准确率 | **26 / 26 = 100%**（样本集 `tests/known_sides.json`） |
+| **误判为纯服务端的数量** | **0** —— 铁律，由两个测试守着 |
+| 全量 151 个 mod 判定分布 | 纯客户端 30 / 双端 117 / 纯服务端 4 / 不确定 0 |
+| 判为纯服务端的 4 个 | BetterTab、CBC Peripheral、MiniMOTD、ServerCore（依据均为 `client_side=unsupported`，逐个核对成立） |
+| Modrinth 命中率 | **120 / 151 = 79.5%** |
+| 首次全量耗时（含 mcmod） | 约 4.3 分钟 —— 受串行限流 0.6 秒/请求的硬下限约束；`--mcmod-scope missing` 约 1 分钟 |
+| 第二次扫描 | **0.1 秒**，报告内 `本次网络请求：0 次` |
+| 单元测试 | **65 个用例全绿**（含准确率基准与铁律断言） |
+
+复现方式：
+
+```powershell
+python -m src scan "D:\mc\mods" --out-dir out
+python -m unittest tests.test_accuracy -v
+```
+
 ---
 
 ## 与 AutoSync 联动

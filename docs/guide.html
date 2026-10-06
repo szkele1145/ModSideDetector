@@ -62,7 +62,10 @@
 </ul>
 </li>
 <li><a href="#判定结论怎么读">判定结论怎么读</a></li>
-<li><a href="#数据源与实测覆盖率">数据源与实测覆盖率</a></li>
+<li><a href="#数据源与实测覆盖率">数据源与实测覆盖率</a><ul>
+<li><a href="#验收实测">验收实测</a></li>
+</ul>
+</li>
 <li><a href="#与-autosync-联动">与 AutoSync 联动</a><ul>
 <li><a href="#方式-b-网络上报-msfp-裸-tcp">方式 B：网络上报（MSFP / 裸 TCP）</a></li>
 </ul>
@@ -334,6 +337,52 @@ python <span class="hl-k">-m</span> src cache -<span class="hl-k">-clear</span><
 </tbody>
 </table></div>
 <p><strong>刻意不做的事</strong>：不扫字节码。<code>HANDOFF.md</code> 实测字节码扫描准确率仅约 55%（<code>Axiom</code>、<code>Flashback</code>、<code>Xaero 小地图</code> 全被误判）。</p>
+<h3 id="验收实测">验收实测</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>项目</th>
+<th>实测结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>人工确认基准集准确率</td>
+<td><strong>26 / 26 = 100%</strong>（样本集 <code>tests/known_sides.json</code>）</td>
+</tr>
+<tr>
+<td><strong>误判为纯服务端的数量</strong></td>
+<td><strong>0</strong> —— 铁律，由两个测试守着</td>
+</tr>
+<tr>
+<td>全量 151 个 mod 判定分布</td>
+<td>纯客户端 30 / 双端 117 / 纯服务端 4 / 不确定 0</td>
+</tr>
+<tr>
+<td>判为纯服务端的 4 个</td>
+<td>BetterTab、CBC Peripheral、MiniMOTD、ServerCore（依据均为 <code>client_side=unsupported</code>，逐个核对成立）</td>
+</tr>
+<tr>
+<td>Modrinth 命中率</td>
+<td><strong>120 / 151 = 79.5%</strong></td>
+</tr>
+<tr>
+<td>首次全量耗时（含 mcmod）</td>
+<td>约 4.3 分钟 —— 受串行限流 0.6 秒/请求的硬下限约束；<code>--mcmod-scope missing</code> 约 1 分钟</td>
+</tr>
+<tr>
+<td>第二次扫描</td>
+<td><strong>0.1 秒</strong>，报告内 <code>本次网络请求：0 次</code></td>
+</tr>
+<tr>
+<td>单元测试</td>
+<td><strong>65 个用例全绿</strong>（含准确率基准与铁律断言）</td>
+</tr>
+</tbody>
+</table></div>
+<p>复现方式：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">PowerShell</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code class="language-powershell">python <span class="hl-k">-m</span> src scan <span class="hl-s">"D:\mc\mods"</span> -<span class="hl-k">-out-dir</span> out
+python <span class="hl-k">-m</span> unittest tests.test_accuracy <span class="hl-k">-v</span></code></pre></div>
 <hr>
 <h2 id="与-autosync-联动">与 AutoSync 联动</h2>
 <div class="codeblock"><div class="codeblock-head"><span class="code-lang">文本</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code>ModSideDetector scan → side-report.json → AutoSync 的 classify 优先读它
