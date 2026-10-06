@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>使用指南 · ModSideDetector</title>
+<meta name="description" content="ModSideDetector 使用指南：快速开始、CLI 开关、判定结论读法、数据源覆盖率、打包与配置、已知限制。">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="使用指南 · ModSideDetector">
+<meta property="og:description" content="ModSideDetector 使用指南：快速开始、CLI 开关、判定结论读法、数据源覆盖率、打包与配置、已知限制。">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f12'/%3E%3Cpath d='M7 22l9-13 9 13' fill='none' stroke='%233ddc97' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='24' r='2' fill='%2338bdf8'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="26" height="26"><path d="M6 23l10-14 10 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="25" r="2.2" fill="#38bdf8"/></svg>
+      </span>
+      <span class="brand-text">
+        <span class="brand-name">ModSideDetector</span>
+        <span class="brand-sub">模组运行侧别检测</span>
+      </span>
+    </a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>
+      <span class="nav-toggle-bar" aria-hidden="true"></span>
+      <span class="sr-only">切换导航</span>
+    </button>
+    <nav class="site-nav" id="site-nav" data-nav>
+      <a class="nav-link" href="index.html">首页</a>
+      <a class="nav-link is-active" href="guide.html" aria-current="page">使用指南</a>
+      <a class="nav-link" href="strategy.html">判定策略</a>
+      <a class="nav-link" href="handoff.html">技术交接</a>
+      <a class="nav-link" href="prompt.html">原始需求书</a>
+      <a class="nav-gh" href="https://github.com/szkele1145/ModSideDetector" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+<section class="page-hero">
+  <div class="wrap">
+    <p class="crumb"><a href="index.html">首页</a> / 使用指南</p>
+    <h1 class="page-title">使用指南</h1>
+    <p class="page-lead">本页是 README.md 的网页版：从 GUI / CLI 快速开始，含全部命令行开关、配置项、打包说明与已知限制。</p>
+    <p class="src-note">内容源：<code>README.md</code></p>
+  </div>
+</section>
+<section class="doc-section">
+  <div class="wrap doc-layout">
+<aside class="doc-aside">
+<div class="aside-title">本页目录</div>
+<div class="toc">
+<ul>
+<li><a href="#modsidedetector">ModSideDetector</a><ul>
+<li><a href="#它解决什么问题">它解决什么问题</a></li>
+<li><a href="#快速开始">快速开始</a><ul>
+<li><a href="#图形界面-推荐">图形界面（推荐）</a></li>
+<li><a href="#命令行">命令行</a></li>
+</ul>
+</li>
+<li><a href="#判定结论怎么读">判定结论怎么读</a></li>
+<li><a href="#数据源与实测覆盖率">数据源与实测覆盖率</a></li>
+<li><a href="#与-autosync-联动">与 AutoSync 联动</a></li>
+<li><a href="#打包自己的-exe">打包自己的 exe</a><ul>
+<li><a href="#打包产物里没有什么">打包产物里没有什么</a></li>
+</ul>
+</li>
+<li><a href="#配置文件">配置文件</a></li>
+<li><a href="#缓存与许可证-红线">缓存与许可证（红线）</a></li>
+<li><a href="#目录结构">目录结构</a></li>
+<li><a href="#开发与测试">开发与测试</a></li>
+<li><a href="#已知限制">已知限制</a></li>
+<li><a href="#红线-摘自-handoff-md-务必遵守">红线（摘自 HANDOFF.md，务必遵守）</a></li>
+<li><a href="#许可证">许可证</a></li>
+<li><a href="#在线文档">在线文档</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+</aside>
+    <article class="doc-content">
+<h1 id="modsidedetector">ModSideDetector</h1>
+<p>检测 Minecraft 模组<strong>运行侧别</strong>的桌面工具 —— 判断每个 mod 属于 <strong>纯客户端</strong> / <strong>纯服务端</strong> / <strong>双端</strong>，并导出报告供 <a href="https://github.com/szkele1145/AutoSync" target="_blank" rel="noopener noreferrer">AutoSync</a> 直接消费。</p>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">文本</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code>装多了 → 玩家白下载几百 MB
+装少了 → 直接崩游戏（Missing or unsupported mandatory dependencies）</code></pre></div>
+<hr>
+<h2 id="它解决什么问题">它解决什么问题</h2>
+<p>整合包作者手工分辨 mod 侧别极耗时且容易错。现有方案（Modrinth 的 <code>client_side</code> / <code>server_side</code>）由 <strong>mod 作者自己填</strong>，经常不准 —— 这正是本项目要改进的环节。</p>
+<p>ModSideDetector 的做法是<strong>多源交叉</strong>：MC 百科（mcmod.cn）的「运行环境」字段 + Modrinth 的 side 字段 + jar 内静态特征，冲突时请人来定，判不了时<strong>保守放双端</strong>。</p>
+<hr>
+<h2 id="快速开始">快速开始</h2>
+<h3 id="图形界面-推荐">图形界面（推荐）</h3>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">PowerShell</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code class="language-powershell">python <span class="hl-k">-m</span> src.main                        <span class="hl-c"># 打开 GUI</span>
+python <span class="hl-k">-m</span> src.main -<span class="hl-k">-mods-dir</span> <span class="hl-s">"D:\mc\mods"</span>  <span class="hl-c"># 打开并立即开始扫描</span></code></pre></div>
+<p><code>src/main.py</code> 支持的参数：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--mods-dir &lt;目录&gt;</code></td>
+<td>启动后直接开始扫描该目录</td>
+</tr>
+<tr>
+<td><code>--version</code></td>
+<td>打印 <code>ModSideDetector 1.0.0</code> 后退出</td>
+</tr>
+<tr>
+<td><code>--self-test</code></td>
+<td>自检：建窗口 → 渲染一帧 → 1.5 秒后自动销毁，成功退出码 0（给自动化用）</td>
+</tr>
+<tr>
+<td><code>--log-level DEBUG\|INFO\|WARNING\|ERROR</code></td>
+<td>日志级别，默认 INFO</td>
+</tr>
+<tr>
+<td><code>--config &lt;路径&gt;</code></td>
+<td>指定配置文件（默认 <code>&lt;程序目录&gt;/config.json</code>）</td>
+</tr>
+</tbody>
+</table></div>
+<p>界面功能：<strong>选文件夹 / 拖拽文件夹</strong>、扫描进度（进度条 + 当前文件名 + 已用时间与预计剩余）、
+结果表格（<strong>按列排序</strong>、<strong>按侧别筛选</strong>、<strong>冲突与 unknown 高亮</strong>）、<strong>双击行人工改判</strong>（写入缓存）、
+导出 <code>side-report.json/.csv/.txt</code>、<strong>导出到 AutoSync 目录</strong>、<strong>一键分类（只复制）</strong>、
+底部状态栏（目录 / 各侧别计数 / 耗时 / 错误数）。</p>
+<p>或者直接双击 <code>dist\ModSideDetector\ModSideDetector.exe</code>（免装 Python，见下方「打包」）。</p>
+<p>界面上可以：选/拖入 <code>mods</code> 文件夹 → 看进度 → 结果表格按列排序、按侧别筛选 → <strong>双击某行人工改判</strong>（结论写入缓存，下次扫描直接沿用）→ 导出报告 → 一键分类。</p>
+<blockquote>
+<p><strong>拖拽是软依赖</strong>：装了 <code>tkinterdnd2</code> 就能把文件夹直接拖进窗口，没装（或 <code>tkdnd</code>
+二进制加载失败）时界面只是显示一行提示并禁用拖拽，其余功能完全不受影响。
+界面底部也会说明当前是否启用。</p>
+</blockquote>
+<h3 id="命令行">命令行</h3>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">PowerShell</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code class="language-powershell"><span class="hl-c"># 扫描并导出 side-report.json / .csv / .txt</span>
+python <span class="hl-k">-m</span> src scan <span class="hl-s">"D:\mc\mods"</span>
+
+<span class="hl-c"># 只跑 Modrinth（跳过 mcmod 抓取，快很多）</span>
+python <span class="hl-k">-m</span> src scan <span class="hl-s">"D:\mc\mods"</span> -<span class="hl-k">-no-mcmod</span>
+
+<span class="hl-c"># 额外写一份给 AutoSync 读的文件</span>
+python <span class="hl-k">-m</span> src scan <span class="hl-s">"D:\mc\mods"</span> -<span class="hl-k">-for-autosync</span> <span class="hl-s">"D:\AutoSync\data"</span>
+
+<span class="hl-c"># 人工确认某个 mod（写进缓存，永久生效）</span>
+python <span class="hl-k">-m</span> src review <span class="hl-s">"D:\mc\mods"</span> -<span class="hl-k">-name</span> sodium.jar -<span class="hl-k">-side</span> client -<span class="hl-k">-note</span> <span class="hl-s">"服主确认"</span>
+
+<span class="hl-c"># 按报告一键分类（默认只复制，不移动原文件）</span>
+python <span class="hl-k">-m</span> src classify <span class="hl-s">"D:\mc\mods"</span> -<span class="hl-k">-out</span> <span class="hl-s">"D:\mc\server"</span>
+
+<span class="hl-c"># 查看缓存统计 / 清理缓存</span>
+python <span class="hl-k">-m</span> src cache -<span class="hl-k">-show</span>
+python <span class="hl-k">-m</span> src cache -<span class="hl-k">-clear</span></code></pre></div>
+<blockquote>
+<p>⚠️ <strong>全局参数要放在子命令前面</strong>：<code>python -m src --verbose scan ...</code> 是对的，
+<code>python -m src scan ... --verbose</code> 会报 <code>unrecognized arguments</code>（argparse 的行为）。</p>
+</blockquote>
+<p><code>scan</code> 的常用开关：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>开关</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--out-dir &lt;目录&gt;</code></td>
+<td>报告输出目录（默认与 mods 目录相同）</td>
+</tr>
+<tr>
+<td><code>--json-only</code></td>
+<td>只写 JSON，不写 CSV/TXT</td>
+</tr>
+<tr>
+<td><code>--for-autosync &lt;目录&gt;</code></td>
+<td>额外写一份 AutoSync 可读的 <code>side-report.json</code></td>
+</tr>
+<tr>
+<td><code>--limit N</code></td>
+<td>只扫描前 N 个 jar（冒烟测试用）</td>
+</tr>
+<tr>
+<td><code>--no-mcmod</code> / <code>--no-modrinth</code> / <code>--no-heuristics</code></td>
+<td>关闭对应数据源</td>
+</tr>
+<tr>
+<td><code>--offline</code></td>
+<td>完全离线（等价于关掉 mcmod + Modrinth）</td>
+</tr>
+<tr>
+<td><code>--refresh</code></td>
+<td>忽略缓存重新查询</td>
+</tr>
+<tr>
+<td><code>--min-interval 1.0</code></td>
+<td>调大 mcmod 抓取间隔（默认 0.6 秒）</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h2 id="判定结论怎么读">判定结论怎么读</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>判定</th>
+<th>含义</th>
+<th>分发含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>纯客户端</code></td>
+<td>只客户端装</td>
+<td>只发给玩家</td>
+</tr>
+<tr>
+<td><code>纯服务端</code></td>
+<td>只服务端装</td>
+<td>只放服务器</td>
+</tr>
+<tr>
+<td><code>双端</code></td>
+<td>两边都要</td>
+<td>两边都装</td>
+</tr>
+<tr>
+<td><code>不确定</code></td>
+<td>判不了</td>
+<td>按配置处理（默认当双端）</td>
+</tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>置信度</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>高</td>
+<td>两源一致，或某源给出<strong>明确依据</strong>（如 <code>client_side=unsupported</code>）</td>
+</tr>
+<tr>
+<td>中</td>
+<td>只有一个数据源有数据</td>
+</tr>
+<tr>
+<td>低</td>
+<td>两源冲突 / 无数据源 / 弱信号兜底</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>界面上要重点看两类行</strong>：<code>冲突</code>（两源结论相反）与 <code>需人工确认</code>。其余行扫一眼即可。</p>
+<p>冲突时工具<strong>不做「谁更权威」的猜测</strong>，直接判双端并请你人工确认 —— 猜错的代价是崩游戏。唯一例外：mcmod 明写「服务端无效 / 客户端无效」（明确依据）而 Modrinth 只有弱依据时，采信 mcmod，但置信度压到低并要求复核。</p>
+<p>详细的规则、权重与实测坑见 <strong><a href="strategy.html">docs/判定策略.md</a></strong>。</p>
+<hr>
+<h2 id="数据源与实测覆盖率">数据源与实测覆盖率</h2>
+<p>在<strong>真实数据</strong>（151 个 NeoForge 1.21.1 模组，817 MB）上的实测：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>数据源</th>
+<th>覆盖率</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>mcmod「运行环境」</strong></td>
+<td>见下方准确率章节</td>
+<td>语义最清晰，<strong>质量最高</strong>，需限流抓取</td>
+</tr>
+<tr>
+<td><strong>Modrinth</strong></td>
+<td><strong>120/151 = 79.5%</strong></td>
+<td>官方批量 API，快；但字段由作者自填，常不准</td>
+</tr>
+<tr>
+<td>jar 元数据（<code>clientSideOnly</code> / Fabric <code>environment</code>）</td>
+<td>约 6%</td>
+<td>作者显式声明，可信但覆盖率低</td>
+</tr>
+<tr>
+<td>mixin / <code>data/</code> 等启发式</td>
+<td>100%</td>
+<td><strong>只作提示，绝不单独定案</strong></td>
+</tr>
+<tr>
+<td>人工复核</td>
+<td>100%</td>
+<td>一次性确认，写进缓存永久生效</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>刻意不做的事</strong>：不扫字节码。<code>HANDOFF.md</code> 实测字节码扫描准确率仅约 55%（<code>Axiom</code>、<code>Flashback</code>、<code>Xaero 小地图</code> 全被误判）。</p>
+<hr>
+<h2 id="与-autosync-联动">与 AutoSync 联动</h2>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">文本</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code>ModSideDetector scan → side-report.json → AutoSync 的 classify 优先读它
+                                       → 读不到才回退查 Modrinth</code></pre></div>
+<p><code>side-report.json</code> 的格式严格按 <code>HANDOFF.md</code> 4.2 节的约定（<code>generated</code> / <code>tool</code> / <code>mods[]</code>，每条含 <code>file</code> / <code>sha1</code> / <code>sha256</code> / <code>mod_id</code> / <code>display_name</code> / <code>side</code> / <code>confidence</code> / <code>sources</code> / <code>notes</code>）。</p>
+<p>生成方式：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">PowerShell</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code class="language-powershell">python <span class="hl-k">-m</span> src scan <span class="hl-s">"D:\mc\mods"</span> -<span class="hl-k">-for-autosync</span> <span class="hl-s">"D:\AutoSync\data"</span></code></pre></div>
+<p>一键分类的输出目录名也与 AutoSync 的 <code>classify</code> 语义一致：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">文本</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code>&lt;输出目录&gt;/
+├── client-mods/     纯客户端（只发给玩家）
+├── server-mods/     纯服务端（只放服务器）
+└── both-mods/       双端 + 不确定（两边都要）</code></pre></div>
+<blockquote>
+<p><strong>一键分类默认是「复制」不是「移动」</strong>，且目标同名文件内容不同时<strong>绝不覆盖</strong>（只记冲突）。
+源文件永远不动 —— 删错了没法恢复，复制错了只是浪费磁盘。</p>
+</blockquote>
+<hr>
+<h2 id="打包自己的-exe">打包自己的 exe</h2>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">PowerShell</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code class="language-powershell">powershell <span class="hl-k">-ExecutionPolicy</span> Bypass <span class="hl-k">-File</span> build.ps1
+<span class="hl-c"># 产物：dist\ModSideDetector\ModSideDetector.exe</span></code></pre></div>
+<p>脚本采用 <strong><code>--onedir</code></strong>（不是 <code>--onefile</code>）+ <code>--windowed</code>，并排除 matplotlib/numpy/PyQt 等无关大件。</p>
+<blockquote>
+<p>⚠️ <strong>杀毒软件误报</strong>：PyInstaller 打包的 exe <strong>经常被杀毒软件误报</strong>，这不是本程序的问题，是打包器的通用现象。缓解办法：
+1. 用 <code>--onedir</code>（本脚本的默认，误报率明显低于 <code>--onefile</code>）；
+2. 把 <code>dist\ModSideDetector\</code> 整个目录加入杀软白名单（<strong>不要只加 exe</strong>，它依赖同目录的 <code>_internal\</code>）；
+3. 从源码自己跑（<code>python -m src.main</code>），完全绕开打包器；
+4. 对 exe 做代码签名（需购买证书，成本较高）。</p>
+</blockquote>
+<h3 id="打包产物里没有什么">打包产物里没有什么</h3>
+<ul>
+<li><strong>不含 <code>cache/</code></strong> —— 里面是 mcmod.cn 抓来的内容，许可为 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" target="_blank" rel="noopener noreferrer">BY-NC-SA 3.0</a>，<strong>禁止随产物分发</strong>；</li>
+<li><strong>不含 <code>config.json</code></strong> —— 里面有本机路径、代理等私人配置；程序首次运行会在 exe 所在目录自动生成。</li>
+</ul>
+<hr>
+<h2 id="配置文件">配置文件</h2>
+<p>配置优先级：<code>--config &lt;路径&gt;</code> &gt; <code>&lt;程序目录&gt;/config.json</code> &gt; 默认值。</p>
+<p>首次运行会自动生成 <code>config.json</code>（GUI 会记住上次扫描的目录）。字段说明见 <code>config.example.json</code>，常用项：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>默认</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mods_dir</code></td>
+<td><code>""</code></td>
+<td>上次扫描的目录（自动记忆）</td>
+</tr>
+<tr>
+<td><code>output_dir</code></td>
+<td><code>""</code></td>
+<td>报告输出目录，空 = mods 目录</td>
+</tr>
+<tr>
+<td><code>cache_dir</code></td>
+<td><code>""</code></td>
+<td>缓存目录，空 = <code>&lt;程序目录&gt;/cache</code></td>
+</tr>
+<tr>
+<td><code>use_mcmod</code> / <code>use_modrinth</code> / <code>use_heuristics</code></td>
+<td><code>true</code></td>
+<td>数据源开关</td>
+</tr>
+<tr>
+<td><code>mcmod_min_interval</code></td>
+<td><code>0.6</code></td>
+<td>mcmod 抓取间隔（秒），<strong>调小会被对方限流</strong></td>
+</tr>
+<tr>
+<td><code>cache_ttl_hours</code></td>
+<td><code>720</code></td>
+<td>缓存有效期，<code>&lt;=0</code> 表示永不过期</td>
+</tr>
+<tr>
+<td><code>unknown_as</code></td>
+<td><code>"both"</code></td>
+<td>判不了时怎么办。<strong>只接受 <code>both</code> / <code>unknown</code></strong>，写成 <code>server</code> 会被强制纠正</td>
+</tr>
+<tr>
+<td><code>proxy</code></td>
+<td><code>""</code></td>
+<td>形如 <code>http://127.0.0.1:7890</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h2 id="缓存与许可证-红线">缓存与许可证（红线）</h2>
+<ul>
+<li>缓存写在 <code>cache/side-cache.json</code>，包含 jar 哈希、Modrinth 查询结果、mcmod「运行环境」原文、以及人工复核结论；</li>
+<li><strong>mcmod 的内容是 BY-NC-SA 3.0：禁止商业使用、转载需署名</strong>。本地缓存自己用没问题，<strong>不要把缓存打包进分发的产物</strong>（<code>.gitignore</code> 与 <code>build.ps1</code> 都已排除）；</li>
+<li>mcmod 抓取<strong>串行限流 0.6 秒/请求</strong>，不要并发 —— 尊重对方服务器，这也是 <code>HANDOFF.md</code> 明确列出的红线。</li>
+</ul>
+<hr>
+<h2 id="目录结构">目录结构</h2>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">文本</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code>ModSideDetector/
+├── README.md              本文件
+├── PROMPT.md              原始需求书
+├── HANDOFF.md             技术交接文档（实测结论 + 红线，勿删）
+├── docs/
+│   └── 判定策略.md         判定规则、置信度语义、开发阶段新发现的坑
+├── config.example.json    配置示例
+├── requirements.txt
+├── build.ps1              PyInstaller 打包脚本
+├── src/
+│   ├── main.py            GUI 入口
+│   ├── cli.py             命令行入口（python -m src）
+│   ├── detector.py        核心编排 + 多源融合
+│   ├── jarinfo.py         jar 元数据解析（TOML / Fabric / JiJ 递归 / 哈希）
+│   ├── cache.py           本地缓存（含人工复核结论）
+│   ├── report.py          导出 JSON / CSV / TXT + 一键分类
+│   ├── net.py             urllib 封装（重试 / 代理 / 限流）
+│   ├── verdict.py         判定结果枚举
+│   ├── config.py, paths.py
+│   ├── sources/
+│   │   ├── mcmod.py       MC 百科（限流 + 多策略搜索 + 标题校验）
+│   │   ├── modrinth.py    Modrinth 批量 API
+│   │   └── heuristics.py  jar 内弱信号
+│   └── ui/app.py          CustomTkinter 界面
+└── tests/                 单元测试 + 人工确认基准集</code></pre></div>
+<hr>
+<h2 id="开发与测试">开发与测试</h2>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">PowerShell</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code class="language-powershell">python <span class="hl-k">-m</span> pip install <span class="hl-k">-r</span> requirements.txt
+
+<span class="hl-c"># 单元测试（不需要网络）</span>
+python <span class="hl-k">-m</span> unittest discover <span class="hl-k">-s</span> tests <span class="hl-k">-v</span>
+
+<span class="hl-c"># 准确率基准测试（需要先生成报告）</span>
+python <span class="hl-k">-m</span> src scan <span class="hl-s">"D:\mc\mods"</span> -<span class="hl-k">-out-dir</span> out
+python <span class="hl-k">-m</span> unittest tests.test_accuracy <span class="hl-k">-v</span></code></pre></div>
+<p>要求 <strong>Python 3.11+</strong>。运行期只用标准库 + <code>customtkinter</code>，网络层是标准库 <code>urllib</code>（不依赖 <code>requests</code>）。</p>
+<hr>
+<h2 id="已知限制">已知限制</h2>
+<ul>
+<li><strong>Modrinth 字段由作者自填</strong>，可能整条都是错的；工具会在两源冲突时高亮，但<strong>最终仍需要人工过一遍</strong>冲突项与「需人工确认」项 —— 这是达到 100% 准确的唯一路径；</li>
+<li><strong>某些 mod 在任何数据源上都查不到</strong>（例如作者没发布到 Modrinth、mcmod 也没收录），此时只能保守判双端；</li>
+<li><strong>mcmod 新收录条目可能没有「运行环境」字段</strong>：这是「字段缺失」，不等于「无侧别信息」，工具会退回其它数据源；</li>
+<li>首次全量扫描需要抓 mcmod，<strong>耗时与 mod 数量成正比</strong>（限流 0.6 秒/请求，151 个 mod 约 2–3 分钟）；第二次扫描走缓存，几秒完成；</li>
+<li><strong>exe 没有自带控制台</strong>：<code>ModSideDetector.exe --version</code> / <code>--self-test</code> 会先尝试写 fd 1（输出被重定向到管道/文件时有效），失败再附着父控制台，并把控制台代码页临时切到 65001（退出时还原）。在<strong>极少数终端组合</strong>下这行文字仍可能看不到 —— 但退出码始终可信（<code>--self-test</code> 成功即 0）；</li>
+<li>拖拽依赖 <code>tkinterdnd2</code>：未安装或 <code>tkdnd</code> 二进制加载失败时，界面上会显示提示并禁用拖拽，其它功能不受影响（软依赖，不阻塞启动）。</li>
+</ul>
+<hr>
+<h2 id="红线-摘自-handoff-md-务必遵守">红线（摘自 HANDOFF.md，务必遵守）</h2>
+<ul>
+<li>❌ 不要把 mcmod 抓来的数据打包进分发的产物（BY-NC-SA 3.0）</li>
+<li>❌ 不要并发狂抓 mcmod（限流 0.6 秒/请求）</li>
+<li>❌ 不要用字节码扫描做主判据（实测准确率仅约 55%）</li>
+<li>❌ 不要把「不确定」判成 <code>server</code>（代价是客户端缺 mod 崩游戏）</li>
+<li>❌ 不要重写 AutoSync 已有的 TOML / JiJ 解析</li>
+</ul>
+<h2 id="许可证">许可证</h2>
+<p>本项目管理器代码采用 MIT（见 <a href="https://github.com/szkele1145/ModSideDetector/blob/main/LICENSE">LICENSE</a>）。
+<strong>注意</strong>：mcmod.cn 的内容为 BY-NC-SA 3.0，与本项目的 MIT 许可无关，不要混淆。</p>
+<hr>
+<h2 id="在线文档">在线文档</h2>
+<p>文档站（深色科技风、纯静态、<strong>无任何外部 CDN 依赖</strong>，离线也能打开）：</p>
+<p><strong>https://szkele1145.github.io/ModSideDetector/</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>页面</th>
+<th>内容</th>
+<th>内容来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://szkele1145.github.io/ModSideDetector/" target="_blank" rel="noopener noreferrer">首页</a></td>
+<td>项目定位、核心特性、判定结论与数据源一览</td>
+<td>手写（由生成器输出）</td>
+</tr>
+<tr>
+<td><a href="https://szkele1145.github.io/ModSideDetector/guide.html" target="_blank" rel="noopener noreferrer">使用指南</a></td>
+<td>本 README 的网页版</td>
+<td><code>README.md</code></td>
+</tr>
+<tr>
+<td><a href="https://szkele1145.github.io/ModSideDetector/strategy.html" target="_blank" rel="noopener noreferrer">判定策略</a></td>
+<td>判定枚举、数据源权重、融合规则与新踩的坑</td>
+<td><code>docs/判定策略.md</code></td>
+</tr>
+<tr>
+<td><a href="https://szkele1145.github.io/ModSideDetector/handoff.html" target="_blank" rel="noopener noreferrer">技术交接</a></td>
+<td>全部实测结论、可复用片段与红线</td>
+<td><code>HANDOFF.md</code></td>
+</tr>
+<tr>
+<td><a href="https://szkele1145.github.io/ModSideDetector/prompt.html" target="_blank" rel="noopener noreferrer">原始需求书</a></td>
+<td>最初的开发提示词与验收标准</td>
+<td><code>PROMPT.md</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>站点由 <code>python tools/build_site.py</code> 生成（<code>--check</code> 只校验不写文件），产物为 <code>docs/*.html</code> + <code>docs/assets/</code>，随 <code>main</code> 分支的 <code>/docs</code> 目录发布。</p>
+<blockquote>
+<p>⚠️ <code>docs/判定策略.md</code> 是文档<strong>源文件</strong>，必须保留 —— 不要因为它生成了 <code>strategy.html</code> 就把它删掉。</p>
+</blockquote>
+<p>发布方式（GitHub Pages 手动配置，<strong>不使用 Actions</strong>）见 <a href="https://github.com/szkele1145/ModSideDetector/blob/main/docs/README-PAGES.md">docs/README-PAGES.md</a>。</p>
+    </article>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-col">
+      <div class="footer-brand">ModSideDetector</div>
+      <p class="footer-note">检测 Minecraft 模组运行侧别的桌面工具：判断纯客户端 / 纯服务端 / 双端，并导出 <code>side-report.json</code> 供 AutoSync 消费。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">站点</div>
+      <ul class="footer-list">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="guide.html">使用指南</a></li>
+        <li><a href="strategy.html">判定策略</a></li>
+        <li><a href="handoff.html">技术交接</a></li>
+        <li><a href="prompt.html">原始需求书</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">相关</div>
+      <ul class="footer-list">
+        <li><a href="https://github.com/szkele1145/ModSideDetector" target="_blank" rel="noopener noreferrer">GitHub 仓库</a></li>
+        <li><a href="https://github.com/szkele1145/AutoSync" target="_blank" rel="noopener noreferrer">AutoSync 项目</a></li>
+        <li><a href="https://www.mcmod.cn/" target="_blank" rel="noopener noreferrer">MC 百科（mcmod.cn）</a></li>
+        <li><a href="https://docs.modrinth.com/api/" target="_blank" rel="noopener noreferrer">Modrinth API 文档</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-legal">
+    <p><strong>许可说明</strong>：本项目管理器代码采用 <a href="https://github.com/szkele1145/ModSideDetector/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT 许可</a>。mcmod.cn 的内容为 <strong>BY-NC-SA 3.0</strong>（禁止商业使用、转载需署名），与本项目的 MIT 许可无关，不要混淆；缓存数据不得随分发产物一起分发。</p>
+    <p class="footer-meta">文档由 <code>tools/build_site.py</code> 从项目内 Markdown 生成 · 无任何外部 CDN 依赖 · 离线可读</p>
+  </div>
+</footer>
+<button class="to-top" type="button" data-to-top aria-label="回到顶部">↑</button>
+<script src="assets/site.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>判定策略 · ModSideDetector</title>
+<meta name="description" content="ModSideDetector 判定规则：枚举与置信度、数据源权重、融合规则、写进代码的铁律，以及实现阶段新踩到的坑。">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="判定策略 · ModSideDetector">
+<meta property="og:description" content="ModSideDetector 判定规则：枚举与置信度、数据源权重、融合规则、写进代码的铁律，以及实现阶段新踩到的坑。">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f12'/%3E%3Cpath d='M7 22l9-13 9 13' fill='none' stroke='%233ddc97' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='24' r='2' fill='%2338bdf8'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="26" height="26"><path d="M6 23l10-14 10 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="25" r="2.2" fill="#38bdf8"/></svg>
+      </span>
+      <span class="brand-text">
+        <span class="brand-name">ModSideDetector</span>
+        <span class="brand-sub">模组运行侧别检测</span>
+      </span>
+    </a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>
+      <span class="nav-toggle-bar" aria-hidden="true"></span>
+      <span class="sr-only">切换导航</span>
+    </button>
+    <nav class="site-nav" id="site-nav" data-nav>
+      <a class="nav-link" href="index.html">首页</a>
+      <a class="nav-link" href="guide.html">使用指南</a>
+      <a class="nav-link is-active" href="strategy.html" aria-current="page">判定策略</a>
+      <a class="nav-link" href="handoff.html">技术交接</a>
+      <a class="nav-link" href="prompt.html">原始需求书</a>
+      <a class="nav-gh" href="https://github.com/szkele1145/ModSideDetector" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+<section class="page-hero">
+  <div class="wrap">
+    <p class="crumb"><a href="index.html">首页</a> / 判定策略</p>
+    <h1 class="page-title">判定策略</h1>
+    <p class="page-lead">本页是 docs/判定策略.md 的网页版：判定枚举、数据源权重、多源融合规则与实现阶段新发现的坑。</p>
+    <p class="src-note">内容源：<code>docs/判定策略.md</code></p>
+  </div>
+</section>
+<section class="doc-section">
+  <div class="wrap doc-layout">
+<aside class="doc-aside">
+<div class="aside-title">本页目录</div>
+<div class="toc">
+<ul>
+<li><a href="#判定策略说明">判定策略说明</a><ul>
+<li><a href="#一-判定枚举与置信度">一、判定枚举与置信度</a></li>
+<li><a href="#二-数据源权重">二、数据源权重</a></li>
+<li><a href="#三-融合规则-src-detector-py-merge_verdicts">三、融合规则（src/detector.py::merge_verdicts）</a><ul>
+<li><a href="#冲突处理">冲突处理</a></li>
+</ul>
+</li>
+<li><a href="#四-铁律-写在代码里-不是文档里">四、铁律（写在代码里，不是文档里）</a></li>
+<li><a href="#五-实现阶段新发现的坑-handoff-未记录">五、实现阶段新发现的坑（HANDOFF 未记录）</a><ul>
+<li><a href="#坑-1-mcmod-搜索结果会被-正文提及-污染-严重">坑 1：mcmod 搜索结果会被「正文提及」污染 ⚠️ 严重</a></li>
+<li><a href="#坑-2-modrinth-的-server_side-optional-不是-服务端需要">坑 2：Modrinth 的 server_side=optional 不是「服务端需要」</a></li>
+<li><a href="#坑-3-handoff-md-2-1-表格里-锂-与-铷-的-classid-都是-36">坑 3：HANDOFF.md 2.1 表格里「锂」与「铷」的 classId 都是 36</a></li>
+<li><a href="#坑-4-displaytest-与-mixin-特征不可判单侧">坑 4：displayTest 与 mixin 特征不可判单侧</a></li>
+</ul>
+</li>
+<li><a href="#六-如何调参-扩展">六、如何调参 / 扩展</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+</aside>
+    <article class="doc-content">
+<h1 id="判定策略说明">判定策略说明</h1>
+<blockquote>
+<p>本文档记录 <strong>ModSideDetector 的判定规则</strong>，以及开发过程中在真实数据（151 个
+NeoForge 1.21.1 模组）上<strong>新踩到的坑</strong>。<code>HANDOFF.md</code> 记录的是接手前的实测结论，
+本文档记录的是实现阶段新增的发现，两者互补，<strong>都不要删</strong>。</p>
+</blockquote>
+<hr>
+<h2 id="一-判定枚举与置信度">一、判定枚举与置信度</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>判定</th>
+<th>含义</th>
+<th>分发含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>client</code></td>
+<td>纯客户端</td>
+<td>只发给玩家</td>
+</tr>
+<tr>
+<td><code>server</code></td>
+<td>纯服务端</td>
+<td>只放服务器</td>
+</tr>
+<tr>
+<td><code>both</code></td>
+<td>双端</td>
+<td>两边都装</td>
+</tr>
+<tr>
+<td><code>unknown</code></td>
+<td>判不了</td>
+<td>按 <code>config.unknown_as</code> 处理（默认 <code>both</code>）</td>
+</tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>置信度</th>
+<th>触发条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>high</code></td>
+<td>两源一致；或某源给出<strong>明确依据</strong>（<code>client_side=unsupported</code>、mcmod 明写「某端无效」、<code>clientSideOnly=true</code>）</td>
+</tr>
+<tr>
+<td><code>medium</code></td>
+<td>只有单一数据源有数据（按需求书：只有一源 → 采信但降置信度）</td>
+</tr>
+<tr>
+<td><code>low</code></td>
+<td>两源冲突；无数据源；弱信号兜底；<code>server</code> 判定被铁律降级</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>界面高亮规则</strong>：<code>conflict=True</code>（两源冲突）与 <code>needs_review=True</code>（需人工确认）
+的行必须高亮 —— 这两类才是用户真正需要看的，其余行扫一眼即可。</p>
+<hr>
+<h2 id="二-数据源权重">二、数据源权重</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>数据源</th>
+<th>实测覆盖率</th>
+<th>在融合中的角色</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mcmod「运行环境」</td>
+<td>92%（HANDOFF 实测）</td>
+<td>主源之一，<strong>有明确单侧依据时权重最高</strong></td>
+</tr>
+<tr>
+<td>Modrinth <code>client_side</code>/<code>server_side</code></td>
+<td>120/151 = <strong>79.5%</strong>（本项目实测）</td>
+<td>主源之一，可批量查询</td>
+</tr>
+<tr>
+<td>jar 元数据（<code>clientSideOnly</code> / Fabric <code>environment</code>）</td>
+<td>约 6%</td>
+<td>显式声明，给 <code>high</code>，但覆盖率低</td>
+</tr>
+<tr>
+<td>mixin / <code>data/</code> 等启发式</td>
+<td>100% 覆盖但不准</td>
+<td><strong>只作提示，不单独定案</strong></td>
+</tr>
+<tr>
+<td>人工复核</td>
+<td>100%</td>
+<td><strong>永远最高优先级</strong>，写进缓存后不再被覆盖</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h2 id="三-融合规则-src-detector-py-merge_verdicts">三、融合规则（<code>src/detector.py::merge_verdicts</code>）</h2>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">文本</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code>人工复核存在                -&gt; 直接采用（<span class="hl-a">confidence</span>=high，<span class="hl-a">manual</span>=True）
+─────────────────────────────────────────────────────────────
+mcmod 与 Modrinth 都给判定：
+    两者相同                -&gt; 采信，high
+    两者不同                -&gt; 见下方「冲突处理」
+只有一源有判定              -&gt; 采信，medium
+两源都没有                  -&gt; 启发式能判就用启发式（low）
+                            否则 both（low，needs_review）
+─────────────────────────────────────────────────────────────
+最后一道闸：<span class="hl-a">side</span> == server 但没有 high/medium 置信度的支持者
+                            -&gt; 强制降级 both（needs_review）</code></pre></div>
+<h3 id="冲突处理">冲突处理</h3>
+<p>冲突时<strong>默认不猜谁更权威</strong>，保守取 <code>both</code> 并请人工确认 —— 猜错的代价是崩游戏。</p>
+<p><strong>唯一例外</strong>：mcmod 给出了<strong>明确单侧依据</strong>（<code>运行环境</code> 里明写「服务端无效」或
+「客户端无效」），而 Modrinth 只有弱依据（<code>optional</code> 之类）时，<strong>采信 mcmod</strong>，
+但置信度压到 <code>low</code> 且 <code>needs_review=True</code>，绝不做静默采信。</p>
+<p>依据：<code>HANDOFF.md</code> 反复强调 mcmod 质量最高；而 Modrinth 的字段由作者自填、经常不准
+（这正是本项目存在的理由）。例外被严格限制在「mcmod 有明确依据」+「Modrinth 依据弱」
+两个条件同时成立时。</p>
+<hr>
+<h2 id="四-铁律-写在代码里-不是文档里">四、铁律（写在代码里，不是文档里）</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>铁律</th>
+<th>实现位置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>绝不允许把「不确定」判成 <code>server</code></td>
+<td><code>detector.merge_verdicts()</code> 最后一道闸</td>
+</tr>
+<tr>
+<td>无数据源时默认 <code>both</code>，不是 <code>unknown</code>/<code>server</code></td>
+<td><code>merge_verdicts()</code> 兜底分支</td>
+</tr>
+<tr>
+<td><code>config.unknown_as</code> 只允许 <code>both</code>/<code>unknown</code></td>
+<td><code>config.Config.__post_init__()</code> 强制纠正</td>
+</tr>
+<tr>
+<td>一键分类<strong>默认只复制不移动</strong></td>
+<td><code>report.classify_copy()</code></td>
+</tr>
+<tr>
+<td>目标同名不同内容<strong>绝不覆盖</strong></td>
+<td><code>report.classify_copy()</code></td>
+</tr>
+<tr>
+<td>mcmod 抓取串行限流 ≥0.6 秒/请求</td>
+<td><code>net.RateLimiter</code> + <code>mcmod.McModSource</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>验收测试：<code>tests/test_core.py::TestMergeRules::test_never_judge_server_without_evidence</code>、
+<code>tests/test_accuracy.py::TestAccuracy::test_no_false_server</code>、
+<code>tests/test_core.py::TestClassifyCopy</code>。</p>
+<hr>
+<h2 id="五-实现阶段新发现的坑-handoff-未记录">五、实现阶段新发现的坑（HANDOFF 未记录）</h2>
+<h3 id="坑-1-mcmod-搜索结果会被-正文提及-污染-严重">坑 1：mcmod 搜索结果会被「正文提及」污染 ⚠️ 严重</h3>
+<p><code>HANDOFF.md</code> 2.1 节给的抓取方式是「搜索页正则 <code>/class/(\d+)\.html</code> → 取第一个」。
+<strong>实测这是错的。</strong></p>
+<p>搜索关键词 <code>sodium</code> 时，搜索页第一条 <code>/class/</code> 链接是 <strong><code>/class/332.html</code>，标题
+<code>[BOT] 植物魔法 (Botania)</code></strong> —— 只因为植物魔法的介绍正文里提到了 "Sodium" 就被召回。
+照搬原方案会拿<strong>植物魔法</strong>的运行环境去判定<strong>钠</strong>的侧别，产生完全错误的结论。</p>
+<p><strong>正确做法</strong>（已实现于 <code>src/sources/mcmod.py::_parse_search_results_ex</code>）：</p>
+<ol>
+<li>只认 <code>&lt;div class="result-item"&gt;</code> 里 <code>&lt;div class="head"&gt;</code> 块中的条目标题链接，
+   <code>&lt;div class="body"&gt;</code>（正文预览）里的链接一律忽略；</li>
+<li>取出 <code>(classId, 标题)</code> 后，<strong>必须用标题与查询名做匹配校验</strong>，只接受匹配上的条目；</li>
+<li>一条都不匹配时<strong>宁可返回「没找到」</strong>，也绝不拿错误条目的运行环境去判定 ——
+   错误结论比没有结论危害大得多。</li>
+</ol>
+<h3 id="坑-2-modrinth-的-server_side-optional-不是-服务端需要">坑 2：Modrinth 的 <code>server_side=optional</code> 不是「服务端需要」</h3>
+<p>初版把 <code>client=required, server=optional</code> 判成了 <code>both</code>，导致 <code>Xaero's Minimap</code>、
+<code>Xaero's World Map</code>、<code>Axiom</code> 这类被误判为双端。</p>
+<p><code>optional</code> 的语义是「<strong>不装也能跑</strong>」，而 <code>HANDOFF.md</code> 2.4 节的误判表明确写着
+Xaero 小地图的真实侧别是<strong>纯客户端</strong>。</p>
+<p>修正后的规则（<code>src/sources/modrinth.py::side_from_project</code>）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Modrinth 字段</th>
+<th>判定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>server=unsupported</code></td>
+<td><code>client</code></td>
+</tr>
+<tr>
+<td><code>client=unsupported</code></td>
+<td><code>server</code></td>
+</tr>
+<tr>
+<td><code>client=required</code> + <code>server=optional</code></td>
+<td><strong><code>client</code></strong>（服务端可不装）</td>
+</tr>
+<tr>
+<td><code>server=required</code> + <code>client=optional</code></td>
+<td><code>both</code>（<strong>保守</strong>：客户端「可选」不等于不需要）</td>
+</tr>
+<tr>
+<td><code>required</code>+<code>required</code> / <code>optional</code>+<code>optional</code></td>
+<td><code>both</code></td>
+</tr>
+<tr>
+<td>两侧都 <code>unknown</code></td>
+<td>不采信（否则会把作者没填的全判成双端，掩盖真正的不确定）</td>
+</tr>
+</tbody>
+</table></div>
+<p>mcmod 侧同理：<code>客户端需装, 服务端可选</code> -&gt; <code>client</code>；<code>客户端可选, 服务端需装</code> -&gt; <code>both</code>。</p>
+<h3 id="坑-3-handoff-md-2-1-表格里-锂-与-铷-的-classid-都是-36">坑 3：<code>HANDOFF.md</code> 2.1 表格里「锂」与「铷」的 classId 都是 36</h3>
+<p>同一个 classId 不可能对应两个 mod，这是笔误。<strong>不要把那张表直接当准确率基准集</strong>，
+里面的「运行环境」是 mcmod 的字段原值，不等于人工确认的真实侧别。</p>
+<h3 id="坑-4-displaytest-与-mixin-特征不可判单侧">坑 4：<code>displayTest</code> 与 mixin 特征不可判单侧</h3>
+<ul>
+<li><code>displayTest="IGNORE_ALL_VERSION"</code>：纯客户端和纯服务端都可能这么写，<strong>判不了</strong>；</li>
+<li>mixin 配置只有 <code>client</code> 段：<code>Xaero 小地图</code>（纯客户端）和一批双端 mod 都这样，
+  凭它判 <code>client</code> 会让服务端缺 mod（同样崩游戏）。</li>
+</ul>
+<p>因此 <code>src/sources/heuristics.py</code> 对这类特征<strong>只给 <code>both</code>（low）+ 提示文字</strong>，
+不产出单侧判定。</p>
+<hr>
+<h2 id="六-如何调参-扩展">六、如何调参 / 扩展</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>想做的事</th>
+<th>改哪里</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>加第三数据源（如 CurseForge）</td>
+<td>在 <code>src/sources/</code> 加模块，产出 <code>SideVerdict</code>；在 <code>detector.PRIMARY_SOURCES</code> 里登记权重</td>
+</tr>
+<tr>
+<td>调整冲突策略</td>
+<td><code>src/detector.py::merge_verdicts()</code></td>
+</tr>
+<tr>
+<td>调整 mcmod 文案映射</td>
+<td><code>src/sources/mcmod.py::parse_run_env()</code>，<strong>改完必须补 <code>tests/test_core.py</code> 的用例</strong></td>
+</tr>
+<tr>
+<td>调整缓存有效期</td>
+<td><code>config.json</code> 的 <code>cache_ttl_hours</code>（&lt;=0 表示不过期）</td>
+</tr>
+<tr>
+<td>关闭某个源</td>
+<td><code>config.json</code> 的 <code>use_mcmod</code> / <code>use_modrinth</code> / <code>use_heuristics</code>，或 CLI 的 <code>--no-mcmod</code> 等</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>改判定规则前先读 <code>HANDOFF.md</code> 第九节的红线。</strong></p>
+    </article>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-col">
+      <div class="footer-brand">ModSideDetector</div>
+      <p class="footer-note">检测 Minecraft 模组运行侧别的桌面工具：判断纯客户端 / 纯服务端 / 双端，并导出 <code>side-report.json</code> 供 AutoSync 消费。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">站点</div>
+      <ul class="footer-list">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="guide.html">使用指南</a></li>
+        <li><a href="strategy.html">判定策略</a></li>
+        <li><a href="handoff.html">技术交接</a></li>
+        <li><a href="prompt.html">原始需求书</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">相关</div>
+      <ul class="footer-list">
+        <li><a href="https://github.com/szkele1145/ModSideDetector" target="_blank" rel="noopener noreferrer">GitHub 仓库</a></li>
+        <li><a href="https://github.com/szkele1145/AutoSync" target="_blank" rel="noopener noreferrer">AutoSync 项目</a></li>
+        <li><a href="https://www.mcmod.cn/" target="_blank" rel="noopener noreferrer">MC 百科（mcmod.cn）</a></li>
+        <li><a href="https://docs.modrinth.com/api/" target="_blank" rel="noopener noreferrer">Modrinth API 文档</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-legal">
+    <p><strong>许可说明</strong>：本项目管理器代码采用 <a href="https://github.com/szkele1145/ModSideDetector/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT 许可</a>。mcmod.cn 的内容为 <strong>BY-NC-SA 3.0</strong>（禁止商业使用、转载需署名），与本项目的 MIT 许可无关，不要混淆；缓存数据不得随分发产物一起分发。</p>
+    <p class="footer-meta">文档由 <code>tools/build_site.py</code> 从项目内 Markdown 生成 · 无任何外部 CDN 依赖 · 离线可读</p>
+  </div>
+</footer>
+<button class="to-top" type="button" data-to-top aria-label="回到顶部">↑</button>
+<script src="assets/site.js" defer></script>
+</body>
+</html>

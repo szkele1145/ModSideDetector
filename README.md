@@ -26,6 +26,21 @@ python -m src.main                        # 打开 GUI
 python -m src.main --mods-dir "D:\mc\mods"  # 打开并立即开始扫描
 ```
 
+`src/main.py` 支持的参数：
+
+| 参数 | 说明 |
+|---|---|
+| `--mods-dir <目录>` | 启动后直接开始扫描该目录 |
+| `--version` | 打印 `ModSideDetector 1.0.0` 后退出 |
+| `--self-test` | 自检：建窗口 → 渲染一帧 → 1.5 秒后自动销毁，成功退出码 0（给自动化用） |
+| `--log-level DEBUG\|INFO\|WARNING\|ERROR` | 日志级别，默认 INFO |
+| `--config <路径>` | 指定配置文件（默认 `<程序目录>/config.json`） |
+
+界面功能：**选文件夹 / 拖拽文件夹**、扫描进度（进度条 + 当前文件名 + 已用时间与预计剩余）、
+结果表格（**按列排序**、**按侧别筛选**、**冲突与 unknown 高亮**）、**双击行人工改判**（写入缓存）、
+导出 `side-report.json/.csv/.txt`、**导出到 AutoSync 目录**、**一键分类（只复制）**、
+底部状态栏（目录 / 各侧别计数 / 耗时 / 错误数）。
+
 或者直接双击 `dist\ModSideDetector\ModSideDetector.exe`（免装 Python，见下方「打包」）。
 
 界面上可以：选/拖入 `mods` 文件夹 → 看进度 → 结果表格按列排序、按侧别筛选 → **双击某行人工改判**（结论写入缓存，下次扫描直接沿用）→ 导出报告 → 一键分类。
@@ -247,7 +262,8 @@ python -m unittest tests.test_accuracy -v
 - **某些 mod 在任何数据源上都查不到**（例如作者没发布到 Modrinth、mcmod 也没收录），此时只能保守判双端；
 - **mcmod 新收录条目可能没有「运行环境」字段**：这是「字段缺失」，不等于「无侧别信息」，工具会退回其它数据源；
 - 首次全量扫描需要抓 mcmod，**耗时与 mod 数量成正比**（限流 0.6 秒/请求，151 个 mod 约 2–3 分钟）；第二次扫描走缓存，几秒完成；
-- `--windowed` 打包出的 exe 从命令行调用时，输出走的是父控制台而非管道，脚本里用管道捕获可能拿不到文字。
+- **exe 没有自带控制台**：`ModSideDetector.exe --version` / `--self-test` 会先尝试写 fd 1（输出被重定向到管道/文件时有效），失败再附着父控制台，并把控制台代码页临时切到 65001（退出时还原）。在**极少数终端组合**下这行文字仍可能看不到 —— 但退出码始终可信（`--self-test` 成功即 0）；
+- 拖拽依赖 `tkinterdnd2`：未安装或 `tkdnd` 二进制加载失败时，界面上会显示提示并禁用拖拽，其它功能不受影响（软依赖，不阻塞启动）。
 
 ---
 
@@ -263,3 +279,25 @@ python -m unittest tests.test_accuracy -v
 
 本项目管理器代码采用 MIT（见 [LICENSE](LICENSE)）。
 **注意**：mcmod.cn 的内容为 BY-NC-SA 3.0，与本项目的 MIT 许可无关，不要混淆。
+
+---
+
+## 在线文档
+
+文档站（深色科技风、纯静态、**无任何外部 CDN 依赖**，离线也能打开）：
+
+**https://szkele1145.github.io/ModSideDetector/**
+
+| 页面 | 内容 | 内容来源 |
+|---|---|---|
+| [首页](https://szkele1145.github.io/ModSideDetector/) | 项目定位、核心特性、判定结论与数据源一览 | 手写（由生成器输出） |
+| [使用指南](https://szkele1145.github.io/ModSideDetector/guide.html) | 本 README 的网页版 | `README.md` |
+| [判定策略](https://szkele1145.github.io/ModSideDetector/strategy.html) | 判定枚举、数据源权重、融合规则与新踩的坑 | `docs/判定策略.md` |
+| [技术交接](https://szkele1145.github.io/ModSideDetector/handoff.html) | 全部实测结论、可复用片段与红线 | `HANDOFF.md` |
+| [原始需求书](https://szkele1145.github.io/ModSideDetector/prompt.html) | 最初的开发提示词与验收标准 | `PROMPT.md` |
+
+站点由 `python tools/build_site.py` 生成（`--check` 只校验不写文件），产物为 `docs/*.html` + `docs/assets/`，随 `main` 分支的 `/docs` 目录发布。
+
+> ⚠️ `docs/判定策略.md` 是文档**源文件**，必须保留 —— 不要因为它生成了 `strategy.html` 就把它删掉。
+
+发布方式（GitHub Pages 手动配置，**不使用 Actions**）见 [docs/README-PAGES.md](docs/README-PAGES.md)。

@@ -34,7 +34,7 @@ import logging  # noqa: E402
 import sys  # noqa: E402
 import traceback  # noqa: E402
 from pathlib import Path  # noqa: E402
-from typing import Optional, Sequence  # noqa: E402
+from typing import Any, Optional, Sequence  # noqa: E402
 
 from . import APP_NAME, APP_TITLE, TOOL_ID  # noqa: E402
 from .paths import default_config_path  # noqa: E402
@@ -46,27 +46,62 @@ SELF_TEST_MS = 1500
 
 
 def _console_encoding() -> str:
-    """当前该用什么编码往控制台/管道写中文。
+    """输出统一用 UTF-8。
 
-    Windows 控制台默认代码页是 936（GBK）而不是 UTF-8 —— 直接按 UTF-8 写进去
-    就是乱码，所以这里问系统要真实的代码页。
+    Windows 控制台默认代码页是 936（GBK），而 PowerShell（尤其是被编排 / 重定向时）
+    常常按 UTF-8 解码原生程序的输出 —— 两边不一致就会看到乱码。这里的策略是：
+
+    * 一律以 UTF-8 写字节；
+    * 只要碰得到控制台，就顺手把控制台输出代码页切成 65001，退出时还原，
+      这样真正显示在终端上的中文也是对的。
     """
+    return "utf-8"
+
+
+def _set_console_code_page(code_page: int) -> bool:
+    """切换控制台输出代码页（best effort）。"""
     try:
         import ctypes
 
-        code_page = int(ctypes.windll.kernel32.GetConsoleOutputCP() or 0)
-        if not code_page:
-            # 没有控制台（输出被重定向成管道/文件）时，消费方通常按 OEM 代码页解码
-            code_page = int(ctypes.windll.kernel32.GetOEMCP() or 0)
+        return bool(ctypes.windll.kernel32.SetConsoleOutputCP(int(code_page)))
     except Exception:
-        code_page = 0
-    return "utf-8" if code_page in (0, 65001) else f"cp{code_page}"
+        return False
+
+
+#: 是否已经为「还原代码页」注册过 atexit（只注册一次）
+_cp_restore_registered = False
+
+
+def _ensure_utf8_console() -> bool:
+    """把当前控制台切到 UTF-8 代码页（没有控制台 / 失败都只是返回 False）。"""
+    global _cp_restore_registered
+    if sys.platform != "win32":
+        return False
+    try:
+        import atexit
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32
+        original = int(kernel32.GetConsoleOutputCP() or 0)
+        if not original:  # 压根没有控制台
+            return False
+        if original == 65001:
+            return True
+        if not _set_console_code_page(65001):
+            return False
+        if not _cp_restore_registered:
+            # 控制台是父进程的，用完要还回去
+            atexit.register(_set_console_code_page, original)
+            _cp_restore_registered = True
+        return True
+    except Exception:
+        return False
 
 
 def _attach_parent_console() -> bool:
     """``--windowed`` 打包后没有控制台，``sys.stdout`` 是 ``None``。
 
-    若本进程是从控制台（cmd / PowerShell）启动的，就尝试附着到父进程的控制台，
+    若本进程是从控制台（cmd / PowerShell）启动的，就附着到父进程的控制台，
     这样 ``ModSideDetector.exe --version`` 仍能看到输出；失败则安静返回。
     """
     if sys.platform != "win32":
@@ -76,7 +111,7 @@ def _attach_parent_console() -> bool:
 
         if not ctypes.windll.kernel32.AttachConsole(-1):  # ATTACH_PARENT_PROCESS
             return False
-        # 按控制台当前的输出代码页写，否则中文在 cmd（cp936）里会变成乱码
+        _ensure_utf8_console()
         sys.stdout = open(  # noqa: SIM115
             "CONOUT$", "w", encoding=_console_encoding(), errors="replace", buffering=1
         )
@@ -89,7 +124,7 @@ def _attach_parent_console() -> bool:
 def _fd1_write(text: str) -> bool:
     """直接往文件描述符 1 写。
 
-    windowed exe 里 ``sys.stdout`` 是 ``None``，但 fd 1 可能仍连着父进程给的
+    windowed exe 里 ``sys.stdout`` 可能是 ``None``，但 fd 1 仍可能连着父进程给的
     管道（``exe --version | Out-String``）。这条路径让重定向场景也能拿到输出；
     写不了就老实返回 False。
     """
@@ -107,7 +142,7 @@ def _fd1_write(text: str) -> bool:
 
 
 class _Fd1Writer:
-    """``sys.stdout`` 兜底：把 print 的内容直接送进 fd 1。"""
+    """``sys.stdout`` 兜底：把 print 的内容直接送进 fd 1（UTF-8）。"""
 
     def write(self, text: str) -> int:
         if text:
@@ -127,8 +162,8 @@ class _Fd1Writer:
 def _std_handle_kind() -> str:
     """fd 1 当前指向什么：``disk`` / ``char``（控制台）/ ``pipe`` / ``none``。
 
-    windowed exe 的 ``sys.stdout`` 是 ``None``，但操作系统层面的标准句柄可能仍然
-    有效（父进程给了管道或文件）。先问清楚指向什么，再决定走哪条输出路径。
+    windowed exe 的 ``sys.stdout`` 可能是 ``None``，但操作系统层面的标准句柄可能
+    仍然有效（父进程给了管道或文件）。先问清楚指向什么，再决定走哪条输出路径。
     """
     if sys.platform != "win32":
         return "none"
@@ -146,9 +181,32 @@ def _std_handle_kind() -> str:
         return "none"
 
 
+def _force_utf8(stream: Any) -> None:
+    """把已有输出流改成 UTF-8；若是控制台，先把控制台代码页也切过去。"""
+    if stream is None:
+        return
+    try:
+        if stream.isatty():
+            _ensure_utf8_console()
+    except Exception:
+        pass
+    try:
+        stream.reconfigure(encoding=_console_encoding(), errors="replace")  # type: ignore[attr-defined]
+    except Exception:
+        pass
+
+
 def _setup_output() -> None:
-    """给 windowed exe 找回一条能写字的输出通道（尽力而为，失败就算了）。"""
+    """统一输出通道（尽力而为，失败就算了）。
+
+    windowed exe 里 ``sys.stdout`` 可能是 ``None``，也可能是 Python 用**本地代码页**
+    （中文 Windows 上是 cp936）包出来的流 —— 这正是中文乱码的来源，所以两种情况
+    都要处理。
+    """
     if sys.stdout is not None:
+        # Python 已经给了 stdout，但它多半按 cp936 编码，强制改成 UTF-8
+        _force_utf8(sys.stdout)
+        _force_utf8(sys.stderr)
         return
     # 输出被重定向到管道/文件：直接写 fd 1 才是对的地方（AttachConsole 会写错地方）
     if _std_handle_kind() in ("pipe", "disk"):
@@ -156,7 +214,7 @@ def _setup_output() -> None:
         if sys.stderr is None:
             sys.stderr = sys.stdout
         return
-    # 从控制台启动：附着到父控制台，中文按当前代码页写
+    # 从控制台启动：附着到父控制台
     if _attach_parent_console():
         return
     sys.stdout = _Fd1Writer()  # type: ignore[assignment]

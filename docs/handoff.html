@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>技术交接文档 · ModSideDetector</title>
+<meta name="description" content="ModSideDetector 技术交接：数据源实测覆盖率与准确率结论、多源融合策略、AutoSync 联动方案与红线。">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="技术交接文档 · ModSideDetector">
+<meta property="og:description" content="ModSideDetector 技术交接：数据源实测覆盖率与准确率结论、多源融合策略、AutoSync 联动方案与红线。">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0f12'/%3E%3Cpath d='M7 22l9-13 9 13' fill='none' stroke='%233ddc97' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='24' r='2' fill='%2338bdf8'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="26" height="26"><path d="M6 23l10-14 10 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="25" r="2.2" fill="#38bdf8"/></svg>
+      </span>
+      <span class="brand-text">
+        <span class="brand-name">ModSideDetector</span>
+        <span class="brand-sub">模组运行侧别检测</span>
+      </span>
+    </a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>
+      <span class="nav-toggle-bar" aria-hidden="true"></span>
+      <span class="sr-only">切换导航</span>
+    </button>
+    <nav class="site-nav" id="site-nav" data-nav>
+      <a class="nav-link" href="index.html">首页</a>
+      <a class="nav-link" href="guide.html">使用指南</a>
+      <a class="nav-link" href="strategy.html">判定策略</a>
+      <a class="nav-link is-active" href="handoff.html" aria-current="page">技术交接</a>
+      <a class="nav-link" href="prompt.html">原始需求书</a>
+      <a class="nav-gh" href="https://github.com/szkele1145/ModSideDetector" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+<section class="page-hero">
+  <div class="wrap">
+    <p class="crumb"><a href="index.html">首页</a> / 技术交接</p>
+    <h1 class="page-title">技术交接文档</h1>
+    <p class="page-lead">本页是 HANDOFF.md 的网页版：全部实测结论（覆盖率、准确率）、可复用实现片段与不可触碰的红线。</p>
+    <p class="src-note">内容源：<code>HANDOFF.md</code></p>
+  </div>
+</section>
+<section class="doc-section">
+  <div class="wrap doc-layout">
+<aside class="doc-aside">
+<div class="aside-title">本页目录</div>
+<div class="toc">
+<ul>
+<li><a href="#modsidedetector-交接文档">ModSideDetector — 交接文档</a><ul>
+<li><a href="#一-项目是什么">一、项目是什么</a></li>
+<li><a href="#二-数据源实测结论-核心资产">二、★ 数据源实测结论（核心资产）</a><ul>
+<li><a href="#2-1-mc-百科-mcmod-cn-首选-质量最高">2.1 MC 百科（mcmod.cn）—— 首选，质量最高</a></li>
+<li><a href="#2-2-modrinth-现成的第二数据源">2.2 Modrinth —— 现成的第二数据源</a></li>
+<li><a href="#2-3-forge-neoforge-的-displaytest-字段-基本没用">2.3 Forge/NeoForge 的 displayTest 字段 —— 基本没用</a></li>
+<li><a href="#2-4-字节码扫描-快-但准确率只有约-55-不推荐做主依据">2.4 字节码扫描 —— 快，但准确率只有约 55%，不推荐做主依据</a></li>
+<li><a href="#2-5-其它可考虑的信号">2.5 其它可考虑的信号</a></li>
+</ul>
+</li>
+<li><a href="#三-推荐的多源融合策略">三、推荐的多源融合策略</a></li>
+<li><a href="#四-与-autosync-的联动方案">四、与 AutoSync 的联动方案</a><ul>
+<li><a href="#4-1-联动点">4.1 联动点</a></li>
+<li><a href="#4-2-推荐联动方式">4.2 推荐联动方式</a></li>
+<li><a href="#4-3-输出目录约定-与-autosync-对齐">4.3 输出目录约定（与 AutoSync 对齐）</a></li>
+</ul>
+</li>
+<li><a href="#五-技术选型建议">五、技术选型建议</a></li>
+<li><a href="#六-已验证的-python-实现片段-可直接复用">六、已验证的 Python 实现片段（可直接复用）</a><ul>
+<li><a href="#6-1-mcmod-查询">6.1 mcmod 查询</a></li>
+<li><a href="#6-2-运行环境-原文-side-枚举">6.2 「运行环境」原文 → side 枚举</a></li>
+<li><a href="#6-3-从-jar-读-displayname-modid">6.3 从 jar 读 displayName / modId</a></li>
+</ul>
+</li>
+<li><a href="#七-验收建议">七、验收建议</a></li>
+<li><a href="#八-相关资源">八、相关资源</a></li>
+<li><a href="#九-明确不要做的事">九、明确不要做的事</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+</aside>
+    <article class="doc-content">
+<h1 id="modsidedetector-交接文档">ModSideDetector — 交接文档</h1>
+<blockquote>
+<p>本文档记录<strong>已实测验证的技术结论</strong>，接手者无需重复试错。
+所有结论均来自对真实数据（151 个 NeoForge 1.21.1 模组）的实测。</p>
+</blockquote>
+<hr>
+<h2 id="一-项目是什么">一、项目是什么</h2>
+<p>一个<strong>检测 Minecraft 模组「运行侧别」</strong>的工具：判断每个 mod 属于</p>
+<ul>
+<li><strong>纯客户端</strong>（只客户端装）</li>
+<li><strong>纯服务端</strong>（只服务端装）</li>
+<li><strong>双端</strong>（客户端+服务端都要装）</li>
+</ul>
+<p>并提供 <strong>GUI + 独立 exe</strong>，最后与 <strong>AutoSync</strong>（另一个项目）联动。</p>
+<p><strong>要解决的痛点是</strong>：整合包作者手工分辨 mod 侧别极其耗时且容易错。装多了玩家白下载几百 MB，装少了直接崩游戏。</p>
+<hr>
+<h2 id="二-数据源实测结论-核心资产">二、★ 数据源实测结论（核心资产）</h2>
+<h3 id="2-1-mc-百科-mcmod-cn-首选-质量最高">2.1 MC 百科（mcmod.cn）—— <strong>首选，质量最高</strong></h3>
+<p><strong>结论：可行，覆盖率 92%，语义最清晰。</strong></p>
+<p>模组详情页有一个 <strong><code>运行环境</code></strong> 字段，直接给出侧别：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">文本</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code>运行环境: 客户端需装, 服务端无效      ← 纯客户端
+运行环境: 客户端需装, 服务端需装      ← 双端
+运行环境: 客户端可选, 服务端无效
+运行环境: 客户端需装, 服务端可选
+运行环境: 客户端需装                  ← 只标了一半</code></pre></div>
+<p><strong>实测覆盖率：12 / 13 = 92%</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>查询名</th>
+<th>classId</th>
+<th>运行环境</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3D 皮肤层</td>
+<td>883</td>
+<td>客户端需装, 服务端无效</td>
+</tr>
+<tr>
+<td>钠</td>
+<td>332</td>
+<td>客户端需装, 服务端需装</td>
+</tr>
+<tr>
+<td>锂</td>
+<td>36</td>
+<td>客户端可选, 服务端无效</td>
+</tr>
+<tr>
+<td>Jade</td>
+<td>3482</td>
+<td>客户端可选, 服务端可选</td>
+</tr>
+<tr>
+<td>机械动力</td>
+<td>2021</td>
+<td>客户端需装, 服务端需装</td>
+</tr>
+<tr>
+<td>创世神</td>
+<td>628</td>
+<td>客户端需装</td>
+</tr>
+<tr>
+<td>Xaero 的小地图</td>
+<td>1701</td>
+<td>客户端需装, 服务端可选</td>
+</tr>
+<tr>
+<td>墓碑</td>
+<td>527</td>
+<td>客户端需装, 服务端需装</td>
+</tr>
+<tr>
+<td>苹果皮</td>
+<td>744</td>
+<td>客户端需装, 服务端可选</td>
+</tr>
+<tr>
+<td>FramedBlocks</td>
+<td>5918</td>
+<td>客户端需装, 服务端需装</td>
+</tr>
+<tr>
+<td>铷</td>
+<td>36</td>
+<td>客户端可选, 服务端无效</td>
+</tr>
+<tr>
+<td>ModernFix</td>
+<td>8714</td>
+<td>客户端可选, 服务端可选</td>
+</tr>
+<tr>
+<td><strong>架构师</strong></td>
+<td>—</td>
+<td><strong>搜索无结果</strong>（mcmod 上叫 <code>Architectury</code>）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>抓取方式（实测可用，无反爬，无需 JS）</strong></p>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">Python</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code class="language-python"><span class="hl-a">UA</span> = {<span class="hl-s">"User-Agent"</span>: <span class="hl-s">"Mozilla/5.0 ... Chrome/120 Safari/537.36"</span>}
+
+<span class="hl-c"># 第一步：搜索拿 classId</span>
+<span class="hl-c">#   GET https://www.mcmod.cn/s?key=&lt;urlquote(名称)&gt;&amp;mold=1</span>
+<span class="hl-c">#   正则： /class/(\d+)\.html      → 取第一个</span>
+<span class="hl-c">#</span>
+<span class="hl-c"># 第二步：抓详情页</span>
+<span class="hl-c">#   GET https://www.mcmod.cn/class/&lt;classId&gt;.html</span>
+<span class="hl-c">#   正则： 运行环境\s*[:：]\s*&lt;/?[^&gt;]*&gt;?\s*([^&lt;\n]{2,40})</span>
+<span class="hl-c">#   回退： 运行环境\s*[:：]\s*([^&lt;\n]{2,40})</span></code></pre></div>
+<p><strong>⚠️ 已知坑</strong></p>
+<ol>
+<li><strong>搜索匹配是最大难点</strong>
+   - <code>架构师</code> 搜不到（mcmod 条目叫 <code>Architectury</code>）
+   - <strong>建议</strong>：用 jar 里 <code>neoforge.mods.toml</code> 的 <code>displayName</code>（通常含"中文名 (English Name)"）；搜不到时换英文名、modId、去括号重试</li>
+<li><strong>新收录条目字段可能为空</strong>
+   - 例：<code>/class/31414.html</code>（Armor Hide，3 天前收录）<strong>没有</strong> <code>运行环境</code> 字段
+   - 必须处理"字段缺失"，不能当成"无侧别信息"</li>
+<li><strong>限流</strong>：实测 <strong>0.6 秒/请求</strong>安全，<strong>不要并发</strong></li>
+<li><strong>⚠️ 许可证</strong>：mcmod 内容为 <strong>BY-NC-SA 3.0</strong>
+   - <strong>禁止商业使用</strong>
+   - <strong>转载需署名</strong>
+   - <strong>不要把抓到的数据打包进分发的产物里</strong>（可在本地缓存供自己使用）</li>
+</ol>
+<hr>
+<h3 id="2-2-modrinth-现成的第二数据源">2.2 Modrinth —— 现成的第二数据源</h3>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">文本</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code>POST <span class="hl-a">https</span>://api.modrinth.com/v2/version_files
+  <span class="hl-a">body</span>: {"hashes": ["&lt;sha1&gt;", ...], "algorithm": "sha1"}
+  → 返回每个 hash 对应的 version 对象
+
+GET <span class="hl-a">https</span>://api.modrinth.com/v2/projects?<span class="hl-a">ids</span>=["&lt;id1&gt;","&lt;id2&gt;"]
+  → 每个 project 有 client_side / server_side
+     取值： required / optional / unsupported</code></pre></div>
+<ul>
+<li><strong>实测命中率：121 / 150 = 80.7%</strong>（同一个 817 MB 整合包）</li>
+<li>优点：<strong>批量查询</strong>（一次 100 个 hash）、有官方 API、无需抓页面</li>
+<li>缺点：字段由<strong>作者自己填</strong>，经常不准（本项目就是因为它不准才另起这个工具）</li>
+</ul>
+<hr>
+<h3 id="2-3-forge-neoforge-的-displaytest-字段-基本没用">2.3 Forge/NeoForge 的 <code>displayTest</code> 字段 —— <strong>基本没用</strong></h3>
+<p>在 <code>META-INF/neoforge.mods.toml</code> 里，理论上能表示"客户端可以不装"。</p>
+<p><strong>实测 144 个 jar 的分布</strong>：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">文本</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code>(未设置)                 <span class="hl-n">134</span>   ← <span class="hl-n">93</span>%
+IGNORE_ALL_VERSION         <span class="hl-n">4</span>
+MATCH_VERSION              <span class="hl-n">3</span>
+IGNORE_SERVER_VERSION      <span class="hl-n">2</span>
+NONE                       <span class="hl-n">1</span></code></pre></div>
+<p><strong>结论：93% 未设置，不可作为主要依据</strong>（可作为弱信号）。</p>
+<hr>
+<h3 id="2-4-字节码扫描-快-但准确率只有约-55-不推荐做主依据">2.4 字节码扫描 —— <strong>快，但准确率只有约 55%，不推荐做主依据</strong></h3>
+<p><strong>做法</strong>：扫描 jar 内 class 文件的字节码，查找 <code>net/minecraft/client/</code> 与 <code>net/minecraft/server/</code> 字符串。</p>
+<p><strong>速度</strong>：151 个 jar <strong>0.7 秒</strong>跑完（只采样前 300 个 class 即可）</p>
+<p><strong>实测分布</strong>：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">文本</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code>双端              <span class="hl-n">102</span>  (<span class="hl-n">68</span>%)
+仅客户端引用        <span class="hl-n">20</span>  (<span class="hl-n">13</span>%)
+没引用 MC 类        <span class="hl-n">19</span>  (<span class="hl-n">13</span>%)
+仅服务端引用        <span class="hl-n">10</span>  (<span class="hl-n">7</span>%)</code></pre></div>
+<p><strong>但抽查后误判严重</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>mod</th>
+<th>扫描判定</th>
+<th>实际情况</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Axiom</code></td>
+<td>没引用 MC 类</td>
+<td><strong>纯客户端</strong>（建筑工具）</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>Flashback</code></td>
+<td><strong>仅服务端引用</strong></td>
+<td><strong>纯客户端</strong>（录像回放）</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>Xaero 小地图</code></td>
+<td>双端</td>
+<td><strong>纯客户端</strong></td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>Lambd 动态光源</code></td>
+<td>没引用 MC 类</td>
+<td><strong>纯客户端</strong></td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>worldedit</code></td>
+<td>没引用 MC 类</td>
+<td>双端</td>
+<td>❌</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>误判原因</strong>
+1. mod 常用 <strong>mixin 字符串目标</strong>（<code>"net.minecraft.client.xxx"</code> 只是字符串，扫到就是假阳性）
+2. <strong>编译期映射差异</strong>（official / srg / mojmap）
+3. <strong>"引用了" ≠ "必需"</strong></p>
+<p><strong>结论：只能当弱信号，权重给低。</strong></p>
+<hr>
+<h3 id="2-5-其它可考虑的信号">2.5 其它可考虑的信号</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>信号</th>
+<th>说明</th>
+<th>可靠性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>jar 内 <code>assets/</code> 存在</td>
+<td>几乎所有 NeoForge mod 都有</td>
+<td><strong>极低</strong>（区分度不足）</td>
+</tr>
+<tr>
+<td>jar 内 <code>data/</code> 存在</td>
+<td>说明有服务端数据包内容</td>
+<td>中低</td>
+</tr>
+<tr>
+<td>jar 内 mixin 配置含 <code>client</code></td>
+<td><code>xxx.mixins.json</code> 里 <code>client</code> 段</td>
+<td>中</td>
+</tr>
+<tr>
+<td><code>displayName</code> 含 "客户端"/"Client"</td>
+<td>名称关键词</td>
+<td>低</td>
+</tr>
+<tr>
+<td><strong>人工复核</strong></td>
+<td>一次性标注，永久有效</td>
+<td><strong>100%</strong></td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h2 id="三-推荐的多源融合策略">三、推荐的多源融合策略</h2>
+<p><strong>没有单一银弹。</strong> 推荐 <strong>投票 + 保守默认</strong>：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">文本</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code>        Modrinth side (<span class="hl-n">80.7</span>% 命中，作者填)
+                    +
+        mcmod 运行环境 (<span class="hl-n">92</span>% 命中，编辑者填)     ← 权重最高
+                    +
+        displayTest / 字节码特征 (弱信号)
+                    ↓
+              综合打分 &amp; 冲突检测
+                    ↓
+    ┌───────────────┴───────────────┐
+    │  两源一致        → 采信          │
+    │  两源冲突        → 标记「需人工确认」│
+    │  只有一源        → 采信但降置信度  │
+    │  都没有          → 默认「双端」    │
+    └───────────────────────────────┘</code></pre></div>
+<p><strong>保守默认原则</strong>：<strong>不确定的一律按「双端」</strong>（发给客户端）——多下载一个 mod 顶多浪费带宽，少发一个会<strong>直接崩游戏</strong>。这条在 AutoSync 项目里已被血泪验证过。</p>
+<hr>
+<h2 id="四-与-autosync-的联动方案">四、与 AutoSync 的联动方案</h2>
+<p>AutoSync 是配套的<strong>整合包自动同步系统</strong>（仓库：<code>https://github.com/szkele1145/AutoSync</code>）。</p>
+<h3 id="4-1-联动点">4.1 联动点</h3>
+<p>AutoSync 有一个 <code>classify</code> 功能（<code>server/python/autosync/classify.py</code>），负责把 <code>client-dist/mods/</code> 里的 mod 分成纯客户端 / 双端 / 纯服务端，并把服务端需要的复制到服务端的 <code>mods/</code>。</p>
+<p><strong>它的分类依据正是 Modrinth 的 side 字段——也就是本项目要改进的那个环节。</strong></p>
+<h3 id="4-2-推荐联动方式">4.2 推荐联动方式</h3>
+<p><strong>方式 A（推荐）：本项目输出 JSON，AutoSync 读取</strong></p>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">文本</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code>ModSideDetector 扫描 mods/ → 生成 side-report.json
+                                    ↓
+AutoSync 的 classify 优先读这个 JSON，没有再查 Modrinth
+                                    ↓
+                          分类准确率大幅提升</code></pre></div>
+<p><strong>side-report.json 建议格式</strong>：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">JSON</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code class="language-json">{
+  <span class="hl-a">"generated"</span>: <span class="hl-s">"2026-10-06T17:30:00+08:00"</span>,
+  <span class="hl-a">"tool"</span>: <span class="hl-s">"ModSideDetector 1.0.0"</span>,
+  <span class="hl-a">"mods"</span>: [
+    {
+      <span class="hl-a">"file"</span>: <span class="hl-s">"sodium-neoforge-0.8.13+mc1.21.1.jar"</span>,
+      <span class="hl-a">"sha1"</span>: <span class="hl-s">"…"</span>,
+      <span class="hl-a">"sha256"</span>: <span class="hl-s">"…"</span>,
+      <span class="hl-a">"mod_id"</span>: <span class="hl-s">"sodium"</span>,
+      <span class="hl-a">"display_name"</span>: <span class="hl-s">"Sodium"</span>,
+      <span class="hl-a">"side"</span>: <span class="hl-s">"client"</span>,          // client | server | both | unknown
+      <span class="hl-a">"confidence"</span>: <span class="hl-s">"high"</span>,      // high | medium | low
+      <span class="hl-a">"sources"</span>: {
+        <span class="hl-a">"modrinth"</span>: { <span class="hl-a">"client_side"</span>: <span class="hl-s">"required"</span>, <span class="hl-a">"server_side"</span>: <span class="hl-s">"unsupported"</span> },
+        <span class="hl-a">"mcmod"</span>:    { <span class="hl-a">"class_id"</span>: <span class="hl-n">332</span>, <span class="hl-a">"run_env"</span>: <span class="hl-s">"客户端需装, 服务端需装"</span> },
+        <span class="hl-a">"heuristics"</span>: { <span class="hl-a">"display_test"</span>: <span class="hl-k">null</span>, <span class="hl-a">"has_client_mixin"</span>: <span class="hl-k">true</span> }
+      },
+      <span class="hl-a">"notes"</span>: <span class="hl-s">""</span>
+    }
+  ]
+}</code></pre></div>
+<p><strong>方式 B：本项目直接调用 AutoSync 的分类逻辑</strong>
+复用 <code>classify.py</code>，避免两套逻辑不一致。</p>
+<p><strong>方式 C（最轻）</strong>：本项目只输出报表给人看，人工决定后手动改 AutoSync 的配置。</p>
+<h3 id="4-3-输出目录约定-与-autosync-对齐">4.3 输出目录约定（与 AutoSync 对齐）</h3>
+<p>若提供「一键分类」功能，建议输出：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">文本</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code>&lt;输出目录&gt;/
+├── client-mods/     纯客户端（只发给玩家）
+├── server-mods/     纯服务端（只放服务器）
+└── both-mods/       双端（两边都要）</code></pre></div>
+<p>这三个目录名与 AutoSync 的 <code>classify</code> 语义一致。</p>
+<hr>
+<h2 id="五-技术选型建议">五、技术选型建议</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>项</th>
+<th>建议</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>语言</td>
+<td><strong>Python 3.11+</strong></td>
+<td>与 AutoSync 同栈，复用 <code>deps.py</code> 里的 TOML 解析与 JiJ 递归扫描</td>
+</tr>
+<tr>
+<td>GUI</td>
+<td><strong>CustomTkinter</strong></td>
+<td>基于 Tkinter（标准库），体积小、现代感强；比 PySide6 轻得多</td>
+</tr>
+<tr>
+<td>打包</td>
+<td><strong>PyInstaller</strong>（<code>--onefile --windowed</code>）</td>
+<td>出单文件 exe，双击即用</td>
+</tr>
+<tr>
+<td>并发</td>
+<td><strong>ThreadPoolExecutor</strong>（网络请求） + 主线程更新 UI</td>
+<td>抓 mcmod 要限流（0.6s/请求），用队列串行更稳</td>
+</tr>
+<tr>
+<td>缓存</td>
+<td>本地 JSON（<code>cache/mcmod-cid.json</code>、<code>cache/side-cache.json</code>）</td>
+<td>避免重复搜索；<strong>缓存不要打包分发</strong>（许可证）</td>
+</tr>
+<tr>
+<td>配置</td>
+<td><code>config.json</code></td>
+<td>与 AutoSync 风格一致</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>⚠️ 打包注意</strong>：PyInstaller 打的 exe 常被杀毒软件误报。缓解方式：
+- 用 <code>--onedir</code> 替代 <code>--onefile</code>（误报率低）
+- 或对 exe 做代码签名（需证书，成本高）
+- <strong>务必在 README 里说明这一点</strong></p>
+<hr>
+<h2 id="六-已验证的-python-实现片段-可直接复用">六、已验证的 Python 实现片段（可直接复用）</h2>
+<h3 id="6-1-mcmod-查询">6.1 mcmod 查询</h3>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">Python</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code class="language-python"><span class="hl-k">import</span> urllib.request, urllib.parse, re
+
+<span class="hl-a">UA</span> = {<span class="hl-s">"User-Agent"</span>: <span class="hl-s">"Mozilla/5.0 (Windows NT 10.0; Win64; x64) "</span>
+                    <span class="hl-s">"AppleWebKit/537.36 Chrome/120 Safari/537.36"</span>}
+
+<span class="hl-k">def</span> fetch(url, <span class="hl-a">timeout</span>=<span class="hl-n">20</span>):
+    <span class="hl-a">req</span> = urllib.request.Request(url, <span class="hl-a">headers</span>=UA)
+    <span class="hl-k">with</span> urllib.request.urlopen(req, <span class="hl-a">timeout</span>=timeout) <span class="hl-k">as</span> <span class="hl-a">r</span>:
+        <span class="hl-k">return</span> r.read().decode(<span class="hl-s">"utf-8"</span>, <span class="hl-s">"replace"</span>)
+
+<span class="hl-k">def</span> search_class_id(name):
+    <span class="hl-s">""</span><span class="hl-s">"返回 (classId, err)"</span><span class="hl-s">""</span>
+    <span class="hl-k">try</span>:
+        <span class="hl-a">html</span> = fetch(<span class="hl-s">"https://www.mcmod.cn/s?key="</span> + urllib.parse.quote(name) + <span class="hl-s">"&amp;mold=1"</span>)
+    <span class="hl-k">except</span> Exception <span class="hl-k">as</span> <span class="hl-a">e</span>:
+        <span class="hl-k">return</span> <span class="hl-k">None</span>, <span class="hl-s">f"搜索失败: {e}"</span>
+    <span class="hl-a">ids</span> = re.findall(<span class="hl-s">r"/class/(\d+)\.html"</span>, html)
+    <span class="hl-k">return</span> (ids[<span class="hl-n">0</span>], <span class="hl-s">""</span>) <span class="hl-k">if</span> ids <span class="hl-k">else</span> (<span class="hl-k">None</span>, <span class="hl-s">"无结果"</span>)
+
+<span class="hl-k">def</span> fetch_run_env(class_id):
+    <span class="hl-s">""</span><span class="hl-s">"返回 (运行环境原文, err)"</span><span class="hl-s">""</span>
+    <span class="hl-k">try</span>:
+        <span class="hl-a">html</span> = fetch(<span class="hl-s">f"https://www.mcmod.cn/class/{class_id}.html"</span>)
+    <span class="hl-k">except</span> Exception <span class="hl-k">as</span> <span class="hl-a">e</span>:
+        <span class="hl-k">return</span> <span class="hl-k">None</span>, str(e)
+    <span class="hl-a">m</span> = (re.search(<span class="hl-s">r"运行环境\s*[:：]\s*&lt;/?[^&gt;]*&gt;?\s*([^&lt;\n]{2,40})"</span>, html)
+         <span class="hl-k">or</span> re.search(<span class="hl-s">r"运行环境\s*[:：]\s*([^&lt;\n]{2,40})"</span>, html))
+    <span class="hl-k">return</span> (m.group(<span class="hl-n">1</span>).strip(), <span class="hl-s">""</span>) <span class="hl-k">if</span> m <span class="hl-k">else</span> (<span class="hl-k">None</span>, <span class="hl-s">"页面无该字段"</span>)</code></pre></div>
+<h3 id="6-2-运行环境-原文-side-枚举">6.2 「运行环境」原文 → side 枚举</h3>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">Python</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code class="language-python"><span class="hl-k">def</span> parse_run_env(<span class="hl-a">text</span>: str) -&gt; <span class="hl-a">str</span>:
+    <span class="hl-s">""</span><span class="hl-s">"返回 client / server / both / unknown"</span><span class="hl-s">""</span>
+    <span class="hl-k">if</span> <span class="hl-k">not</span> <span class="hl-a">text</span>:
+        <span class="hl-k">return</span> <span class="hl-s">"unknown"</span>
+    <span class="hl-a">t</span> = text.replace(<span class="hl-s">" "</span>, <span class="hl-s">""</span>)
+    <span class="hl-a">c_need</span> = <span class="hl-s">"客户端需装"</span> <span class="hl-k">in</span> t
+    <span class="hl-a">c_opt</span>  = <span class="hl-s">"客户端可选"</span> <span class="hl-k">in</span> t
+    <span class="hl-a">s_need</span> = <span class="hl-s">"服务端需装"</span> <span class="hl-k">in</span> t
+    <span class="hl-a">s_opt</span>  = <span class="hl-s">"服务端可选"</span> <span class="hl-k">in</span> t
+    <span class="hl-a">c_bad</span>  = (<span class="hl-s">"服务端无效"</span> <span class="hl-k">in</span> t)          <span class="hl-c"># 注意：这句描述的是服务端，不是客户端</span>
+    <span class="hl-a">s_bad</span>  = (<span class="hl-s">"客户端无效"</span> <span class="hl-k">in</span> t)
+
+    <span class="hl-a">has_client</span> = c_need <span class="hl-k">or</span> c_opt
+    <span class="hl-a">has_server</span> = s_need <span class="hl-k">or</span> s_opt
+
+    <span class="hl-k">if</span> has_client <span class="hl-k">and</span> <span class="hl-a">has_server</span>:
+        <span class="hl-k">return</span> <span class="hl-s">"both"</span>
+    <span class="hl-k">if</span> has_client <span class="hl-k">and</span> (s_bad <span class="hl-k">or</span> <span class="hl-k">not</span> s_need):
+        <span class="hl-k">return</span> <span class="hl-s">"client"</span>
+    <span class="hl-k">if</span> has_server <span class="hl-k">and</span> (c_bad <span class="hl-k">or</span> <span class="hl-k">not</span> c_need):
+        <span class="hl-k">return</span> <span class="hl-s">"server"</span>
+    <span class="hl-k">return</span> <span class="hl-s">"unknown"</span></code></pre></div>
+<blockquote>
+<p>⚠️ 上面这段<strong>只是示例逻辑</strong>，实测样本中的文案组合可能更多（如只有「客户端需装」半句），
+<strong>接手者需要先用真实数据把文案穷举一遍再定稿</strong>。</p>
+</blockquote>
+<h3 id="6-3-从-jar-读-displayname-modid">6.3 从 jar 读 displayName / modId</h3>
+<p>参考 AutoSync 仓库的 <code>server/python/autosync/deps.py</code>：
+- 已实现 <code>[[mods]] #mandatory</code> 这种带行内注释的 TOML 解析
+- 已实现 <strong>JiJ 嵌套层递归</strong>
+- <strong>直接复用，不要重写</strong></p>
+<hr>
+<h2 id="七-验收建议">七、验收建议</h2>
+<ol>
+<li><strong>准确率基准</strong>：准备 50 个<strong>人工已确认</strong>侧别的 mod 做测试集，要求综合准确率 <strong>≥ 95%</strong></li>
+<li><strong>保守性</strong>：所有「无法判定」必须落在 <code>both</code> 或 <code>unknown</code>，<strong>绝不能误判成 <code>server</code></strong>（会导致客户端缺 mod 崩游戏）</li>
+<li><strong>性能</strong>：150 个 mod 全量检测（含 mcmod 抓取）应在 <strong>3 分钟内</strong>完成</li>
+<li><strong>断网可用</strong>：mcmod 不可达时应能降级到 Modrinth / 纯启发式，并明确告知用户</li>
+<li><strong>缓存生效</strong>：第二次扫描不重复请求</li>
+</ol>
+<hr>
+<h2 id="八-相关资源">八、相关资源</h2>
+<ul>
+<li><strong>AutoSync 仓库</strong>：https://github.com/szkele1145/AutoSync</li>
+<li><code>server/python/autosync/classify.py</code> — 现有分类逻辑</li>
+<li><code>server/python/autosync/deps.py</code> — TOML 解析 + JiJ 递归（可复用）</li>
+<li><code>docs/相比原版的改进.md</code> — 项目背景与技术取舍</li>
+<li><strong>mcmod</strong>：https://www.mcmod.cn/</li>
+<li><strong>Modrinth API</strong>：https://docs.modrinth.com/api/</li>
+<li><strong>CurseForge API</strong>：<code>GET /v1/mods/{id}</code> 也返回 <code>clientSide</code> / <code>serverSide</code>（需 api key，可选第三数据源）</li>
+</ul>
+<hr>
+<h2 id="九-明确不要做的事">九、明确不要做的事</h2>
+<ul>
+<li>❌ <strong>不要把 mcmod 抓来的数据打包进分发的产物</strong>（BY-NC-SA 3.0 限制）</li>
+<li>❌ <strong>不要并发狂抓 mcmod</strong>（限流 0.6s，尊重对方服务器）</li>
+<li>❌ <strong>不要用字节码扫描做主判据</strong>（实测仅约 55% 准确）</li>
+<li>❌ <strong>不要把「不确定」判成 <code>server</code></strong>（代价是崩游戏）</li>
+<li>❌ 不要重写 AutoSync 已有的 TOML/JiJ 解析（直接复用）</li>
+</ul>
+    </article>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-col">
+      <div class="footer-brand">ModSideDetector</div>
+      <p class="footer-note">检测 Minecraft 模组运行侧别的桌面工具：判断纯客户端 / 纯服务端 / 双端，并导出 <code>side-report.json</code> 供 AutoSync 消费。</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">站点</div>
+      <ul class="footer-list">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="guide.html">使用指南</a></li>
+        <li><a href="strategy.html">判定策略</a></li>
+        <li><a href="handoff.html">技术交接</a></li>
+        <li><a href="prompt.html">原始需求书</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-title">相关</div>
+      <ul class="footer-list">
+        <li><a href="https://github.com/szkele1145/ModSideDetector" target="_blank" rel="noopener noreferrer">GitHub 仓库</a></li>
+        <li><a href="https://github.com/szkele1145/AutoSync" target="_blank" rel="noopener noreferrer">AutoSync 项目</a></li>
+        <li><a href="https://www.mcmod.cn/" target="_blank" rel="noopener noreferrer">MC 百科（mcmod.cn）</a></li>
+        <li><a href="https://docs.modrinth.com/api/" target="_blank" rel="noopener noreferrer">Modrinth API 文档</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-legal">
+    <p><strong>许可说明</strong>：本项目管理器代码采用 <a href="https://github.com/szkele1145/ModSideDetector/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT 许可</a>。mcmod.cn 的内容为 <strong>BY-NC-SA 3.0</strong>（禁止商业使用、转载需署名），与本项目的 MIT 许可无关，不要混淆；缓存数据不得随分发产物一起分发。</p>
+    <p class="footer-meta">文档由 <code>tools/build_site.py</code> 从项目内 Markdown 生成 · 无任何外部 CDN 依赖 · 离线可读</p>
+  </div>
+</footer>
+<button class="to-top" type="button" data-to-top aria-label="回到顶部">↑</button>
+<script src="assets/site.js" defer></script>
+</body>
+</html>
