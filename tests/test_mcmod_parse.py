@@ -192,13 +192,19 @@ class SearchClassIdTest(unittest.TestCase):
 
 
 class RunEnvTest(unittest.TestCase):
-    """``parse_run_env`` 的文案映射（含「服务端可选 -> 纯客户端」）。"""
+    """``parse_run_env`` 的文案映射。
+
+    口径（项目所有者确认）：**只有「无效」才算不需要；「需装」和「可选」一律视为需要。**
+    所以「客户端需装 + 服务端可选」是 both —— 服务端「可选」意味着可以装，而不是不必装；
+    多装一个只是浪费带宽，少装一个会崩游戏。
+    """
 
     def test_known_cases(self) -> None:
         self.assertEqual(parse_run_env("客户端需装, 服务端无效")[0], "client")
-        self.assertEqual(parse_run_env("客户端需装, 服务端需装")[0], "both")
         self.assertEqual(parse_run_env("客户端可选, 服务端无效")[0], "client")
-        self.assertEqual(parse_run_env("客户端需装, 服务端可选")[0], "client")
+        self.assertEqual(parse_run_env("服务端需装, 客户端无效")[0], "server")
+        self.assertEqual(parse_run_env("客户端需装, 服务端需装")[0], "both")
+        self.assertEqual(parse_run_env("客户端需装, 服务端可选")[0], "both")
         self.assertEqual(parse_run_env("客户端可选, 服务端需装")[0], "both")
         self.assertEqual(parse_run_env("客户端可选, 服务端可选")[0], "both")
         self.assertEqual(parse_run_env("客户端需装")[0], "both")

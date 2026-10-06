@@ -3,8 +3,13 @@
     "人工确认的侧别基准测试集。key = jar 文件名里出现的唯一片段（小写匹配），value = 人工确认的真实侧别。",
     "side 取值：client（纯客户端）/ server（纯服务端）/ both（双端）。",
     "用途：tests/test_accuracy.py 用它计算准确率，并强制校验「误判成 server 的数量必须为 0」。",
-    "注意：HANDOFF.md 2.1 节表格里的「铷」与「锂」classId 都写成 36，属笔误，不可直接当基准。",
-    "下面的条目均为领域知识可直接判定、且有 Modrinth/mcmod 依据交叉印证的高确定性样本。"
+    "",
+    "★ 判定口径（项目所有者确认）：只有「无效 / unsupported」才算不需要；",
+    "  「需装 / 可选 / required / optional」一律视为需要。查不到的默认双端。",
+    "  代价不对等：多装一个只是浪费带宽，少装一个直接崩游戏。",
+    "  所以 Xaero 小地图这类 Modrinth 标 client=required+server=optional 的，基准期望是 both。",
+    "",
+    "注意：HANDOFF.md 2.1 节表格里的「铷」与「锂」classId 都写成 36，属笔误，不可直接当基准。"
   ],
   "cases": {
     "skinlayers3d": "client",
@@ -12,13 +17,17 @@
     "reeses-sodium-options": "client",
     "lambdynamiclights": "client",
     "entityculling": "client",
-    "xaerominimap": "client",
-    "xaeroworldmap": "client",
     "betterpingdisplay": "client",
     "forgematica": "client",
-    "flashback": "client",
-    "axiom": "client",
     "customskinloader": "client",
+    "flashback-0.39.10": "client",
+    "flashback_neoforge_fixed": "client",
+
+    "xaerominimap": "both",
+    "xaeroworldmap": "both",
+    "axiom": "both",
+    "flashback_aero": "both",
+
     "jade": "both",
     "worldedit-mod": "both",
     "create-1.21.1": "both",
@@ -27,6 +36,7 @@
     "modernfix": "both",
     "lithium": "both",
     "ferritecore": "both",
+
     "servercore": "server",
     "minimotd": "server",
     "bettertab": "server",

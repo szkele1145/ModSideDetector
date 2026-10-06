@@ -88,19 +88,22 @@ class ModrinthProject:
 def side_from_project(project: ModrinthProject) -> SideVerdict:
     """把 Modrinth 的 side 字段翻成 :class:`SideVerdict`。
 
-    规则（与 AutoSync ``classify`` 对齐，并按本项目的人工基准做了细化）：
+    **口径（项目所有者确认）：只有 ``unsupported`` 才算不需要；
+    ``required`` 和 ``optional`` 一律视为需要。**
 
-    * 两侧都 ``unknown`` -> 没用的信息，返回 unknown（**不采信**，否则会把
-      作者没填的 mod 全判成双端，掩盖真正的不确定）；
-    * ``server_side == unsupported`` -> 纯客户端；
-    * ``client_side == unsupported`` -> 纯服务端；
-    * ``client=required`` + ``server=optional`` -> **纯客户端**：服务端「可选」
-      的语义是「不装也能跑」，这正是 HANDOFF 里 Xaero 小地图被人工确认为
-      纯客户端的那一类（作者填 optional 是因为服务端装了能多提供一点功能，
-      不是必需）。判 both 会让整合包白给服务端塞一堆用不上的 mod；
-    * 其余（required/required、optional/optional、client=optional+server=required）
-      -> 双端。**注意 ``client=optional`` + ``server=required`` 保持双端**：
-      客户端「可选」不代表客户端不需要，宁可多发也不冒漏发的风险。
+    ``optional`` 的语义是「可以装」，不是「不必装」。多判一端只是多发一个 mod
+    （浪费带宽），少判一端会让那一端缺 mod 直接崩游戏 —— 代价不对等，所以取保守侧。
+
+    规则（与 AutoSync ``classify`` 对齐）：
+
+    * 两侧都 ``unknown`` -> 没用的信息，返回 unknown（**不采信**，否则会把作者
+      没填的 mod 全判成双端，掩盖真正的不确定）；
+    * ``server_side == unsupported``（且客户端侧有 ``required``/``optional``）->
+      **纯客户端**；
+    * ``client_side == unsupported``（且服务端侧有 ``required``/``optional``）->
+      **纯服务端**；
+    * 其余（两端都是 ``required``/``optional`` 的任意组合，含
+      ``client=required + server=optional``）-> **双端**。
     """
     client_value = str(project.client_side or "").strip().lower()
     server_value = str(project.server_side or "").strip().lower()
@@ -129,16 +132,7 @@ def side_from_project(project: ModrinthProject) -> SideVerdict:
     if is_unsupported(client_value):
         return SideVerdict(SIDE_SERVER, CONF_HIGH, "modrinth", detail + " -> 客户端不支持", raw)
 
-    if client_value == SIDE_REQUIRED and server_value == SIDE_OPTIONAL:
-        return SideVerdict(
-            SIDE_CLIENT,
-            CONF_HIGH,
-            "modrinth",
-            detail + " -> 客户端必装、服务端可选（服务端可不装）",
-            raw,
-        )
-
-    # 一侧 optional 一侧 required 之类：都算「两端可用」
+    # 两端都被标成 required/optional（含 required+optional）—— 都算「要装」
     confidence = CONF_HIGH if (client_value == SIDE_REQUIRED and server_value == SIDE_REQUIRED) else CONF_MEDIUM
     return SideVerdict(SIDE_BOTH, confidence, "modrinth", detail + " -> 两端都可用", raw)
 

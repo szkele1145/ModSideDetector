@@ -178,8 +178,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 # ---------------------------------------------------------------- 命令实现
-def _load(path: Path, args: argparse.Namespace, console: Console) -> Config:
-    config = load_config(path)
+def _load(path: Path, args: argparse.Namespace, console: Console) -> Tuple[Config, Config]:
+    """读配置，返回 ``(磁盘上的配置, 叠加命令行开关后的生效配置)``。
+
+    **命令行开关只对本次运行生效，绝不写回 config.json。** 反例（真实踩过）：
+    跑一次 ``scan --no-mcmod`` 会把 ``use_mcmod=false`` 持久化，之后每次扫描都
+    再也不查 MC 百科 —— 用户看到的是「mcmod 明明开着却一次请求都不发」。
+    """
+    base = load_config(path)
+    config = Config.from_dict(base.to_dict())
     if args.command == "scan" or args.command == "classify":
         if getattr(args, "no_mcmod", False):
             config.use_mcmod = False
@@ -190,13 +197,11 @@ def _load(path: Path, args: argparse.Namespace, console: Console) -> Config:
             config.use_modrinth = False
         if getattr(args, "no_heuristics", False):
             config.use_heuristics = False
-        if getattr(args, "refresh", False):
-            config.cache_ttl_hours = -1  # <=0 视作不过期；这里用显式清空代替
         if getattr(args, "no_hash_cache", False):
             config.reuse_jar_hash = False
         if getattr(args, "min_interval", None) is not None:
             config.mcmod_min_interval = float(args.min_interval)
-    return config
+    return base, config
 
 
 def _make_cache(config: Config, path: Path, refresh: bool) -> CacheManager:
@@ -210,15 +215,23 @@ def _make_cache(config: Config, path: Path, refresh: bool) -> CacheManager:
     return manager
 
 
-def cmd_scan(args: argparse.Namespace, config: Config, console: Console) -> int:
+def cmd_scan(
+    args: argparse.Namespace, config: Config, console: Console, base_config: Optional[Config] = None
+) -> int:
     mods_dir = Path(args.mods_dir).expanduser()
     if not mods_dir.is_dir():
         console.warn(f"[x] 目录不存在：{mods_dir}")
         return 2
-    return _run_scan(args, config, console, mods_dir)
+    return _run_scan(args, config, console, mods_dir, base_config)
 
 
-def _run_scan(args: argparse.Namespace, config: Config, console: Console, mods_dir: Path) -> int:
+def _run_scan(
+    args: argparse.Namespace,
+    config: Config,
+    console: Console,
+    mods_dir: Path,
+    base_config: Optional[Config] = None,
+) -> int:
     cache = _make_cache(config, mods_dir, bool(args.refresh))
     detector = Detector(config=config, cache=cache, logger=_Logger(console))
 
@@ -279,10 +292,13 @@ def _run_scan(args: argparse.Namespace, config: Config, console: Console, mods_d
         if len(reviews) > 20:
             console.info(f"  …（其余 {len(reviews) - 20} 项见报告）")
 
-    # 保存记忆的目录
-    config.mods_dir = str(mods_dir)
+    # 只把「上次扫描目录」这类记忆写回磁盘 —— **命令行开关绝不持久化**
+    # （否则一次 `--no-mcmod` 会让之后每次扫描都永远不查 MC 百科）
+    target_config = base_config if base_config is not None else config
+    target_config.mods_dir = str(mods_dir)
+    config_file = Path(getattr(args, "config_path", None) or default_config_path())
     try:
-        save_config(default_config_path(), config)
+        save_config(config_file, target_config)
     except OSError:
         pass
 
@@ -321,7 +337,9 @@ def _find_mod_file(mods_dir: Path, name: str) -> Tuple[Optional[Path], str]:
     return candidates[0], ""
 
 
-def cmd_review(args: argparse.Namespace, config: Config, console: Console) -> int:
+def cmd_review(
+    args: argparse.Namespace, config: Config, console: Console, base_config: Optional[Config] = None
+) -> int:
     mods_dir = Path(args.mods_dir).expanduser()
     if not mods_dir.is_dir():
         console.warn(f"[x] 目录不存在：{mods_dir}")
@@ -360,7 +378,9 @@ def cmd_review(args: argparse.Namespace, config: Config, console: Console) -> in
     return 0
 
 
-def cmd_classify(args: argparse.Namespace, config: Config, console: Console) -> int:
+def cmd_classify(
+    args: argparse.Namespace, config: Config, console: Console, base_config: Optional[Config] = None
+) -> int:
     import json
 
     mods_dir = Path(args.mods_dir).expanduser()
@@ -431,7 +451,9 @@ def _load_report(path: Path) -> Optional[ScanReport]:
     return report
 
 
-def cmd_cache(args: argparse.Namespace, config: Config, console: Console) -> int:
+def cmd_cache(
+    args: argparse.Namespace, config: Config, console: Console, base_config: Optional[Config] = None
+) -> int:
     cache_dir = resolve_cache_dir(config.cache_dir)
     path = cache_dir / "side-cache.json"
     if args.clear:
@@ -463,7 +485,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 0
 
     config_path = Path(args.config).expanduser() if args.config else default_config_path()
-    config = _load(config_path, args, console)
+    args.config_path = config_path
+    base_config, config = _load(config_path, args, console)
 
     handlers = {
         "scan": cmd_scan,
@@ -476,7 +499,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         parser.print_help()
         return 2
     try:
-        return handler(args, config, console)
+        return handler(args, config, console, base_config)
     except KeyboardInterrupt:
         console.warn("\n已中断")
         return 130

@@ -64,7 +64,7 @@
 <li><a href="#四-铁律-写在代码里-不是文档里">四、铁律（写在代码里，不是文档里）</a></li>
 <li><a href="#五-实现阶段新发现的坑-handoff-未记录">五、实现阶段新发现的坑（HANDOFF 未记录）</a><ul>
 <li><a href="#坑-1-mcmod-搜索结果会被-正文提及-污染-严重">坑 1：mcmod 搜索结果会被「正文提及」污染 ⚠️ 严重</a></li>
-<li><a href="#坑-2-modrinth-的-server_side-optional-不是-服务端需要">坑 2：Modrinth 的 server_side=optional 不是「服务端需要」</a></li>
+<li><a href="#坑-2-可选-到底是-要装-还是-不必装-已由项目所有者定调-可选-要装">坑 2：「可选」到底是「要装」还是「不必装」——已由项目所有者定调：可选 = 要装</a></li>
 <li><a href="#坑-3-handoff-md-2-1-表格里-锂-与-铷-的-classid-都是-36">坑 3：HANDOFF.md 2.1 表格里「锂」与「铷」的 classId 都是 36</a></li>
 <li><a href="#坑-4-displaytest-与-mixin-特征不可判单侧">坑 4：displayTest 与 mixin 特征不可判单侧</a></li>
 </ul>
@@ -254,11 +254,14 @@ mcmod 与 Modrinth 都给判定：
 <li>一条都不匹配时<strong>宁可返回「没找到」</strong>，也绝不拿错误条目的运行环境去判定 ——
    错误结论比没有结论危害大得多。</li>
 </ol>
-<h3 id="坑-2-modrinth-的-server_side-optional-不是-服务端需要">坑 2：Modrinth 的 <code>server_side=optional</code> 不是「服务端需要」</h3>
-<p>初版把 <code>client=required, server=optional</code> 判成了 <code>both</code>，导致 <code>Xaero's Minimap</code>、
-<code>Xaero's World Map</code>、<code>Axiom</code> 这类被误判为双端。</p>
-<p><code>optional</code> 的语义是「<strong>不装也能跑</strong>」，而 <code>HANDOFF.md</code> 2.4 节的误判表明确写着
-Xaero 小地图的真实侧别是<strong>纯客户端</strong>。</p>
+<h3 id="坑-2-可选-到底是-要装-还是-不必装-已由项目所有者定调-可选-要装">坑 2：「可选」到底是「要装」还是「不必装」——已由项目所有者定调：<strong>可选 = 要装</strong></h3>
+<p>开发过程中这里反复过一次，最终口径以<strong>项目所有者</strong>为准，并已写死在代码与测试里：</p>
+<blockquote>
+<p><strong>只有「无效 / <code>unsupported</code>」才算不需要；「需装 / 可选 / <code>required</code> / <code>optional</code>
+一律视为需要」。查不到的默认双端。</strong></p>
+</blockquote>
+<p>理由就是全局的保守原则 —— 代价不对等：多判一端只是多发一个 mod（浪费带宽），
+少判一端会让那一端缺 mod <strong>直接崩游戏</strong>。</p>
 <p>修正后的规则（<code>src/sources/modrinth.py::side_from_project</code>）：</p>
 <div class="table-wrap"><table>
 <thead>
@@ -269,24 +272,20 @@ Xaero 小地图的真实侧别是<strong>纯客户端</strong>。</p>
 </thead>
 <tbody>
 <tr>
-<td><code>server=unsupported</code></td>
+<td><code>server=unsupported</code>（客户端侧有 required/optional）</td>
 <td><code>client</code></td>
 </tr>
 <tr>
-<td><code>client=unsupported</code></td>
+<td><code>client=unsupported</code>（服务端侧有 required/optional）</td>
 <td><code>server</code></td>
 </tr>
 <tr>
-<td><code>client=required</code> + <code>server=optional</code></td>
-<td><strong><code>client</code></strong>（服务端可不装）</td>
-</tr>
-<tr>
-<td><code>server=required</code> + <code>client=optional</code></td>
-<td><code>both</code>（<strong>保守</strong>：客户端「可选」不等于不需要）</td>
-</tr>
-<tr>
-<td><code>required</code>+<code>required</code> / <code>optional</code>+<code>optional</code></td>
+<td>两端都是 <code>required</code>/<code>optional</code> 的<strong>任意组合</strong>（含 <code>client=required</code> + <code>server=optional</code>）</td>
 <td><code>both</code></td>
+</tr>
+<tr>
+<td>两端都 <code>unsupported</code></td>
+<td><code>both</code>（字段自相矛盾，保守）</td>
 </tr>
 <tr>
 <td>两侧都 <code>unknown</code></td>
@@ -294,7 +293,39 @@ Xaero 小地图的真实侧别是<strong>纯客户端</strong>。</p>
 </tr>
 </tbody>
 </table></div>
-<p>mcmod 侧同理：<code>客户端需装, 服务端可选</code> -&gt; <code>client</code>；<code>客户端可选, 服务端需装</code> -&gt; <code>both</code>。</p>
+<p>mcmod 侧同理（<code>src/sources/mcmod.py::parse_run_env</code>）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>运行环境原文</th>
+<th>判定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>…, 服务端无效</code></td>
+<td><code>client</code></td>
+</tr>
+<tr>
+<td><code>…, 客户端无效</code></td>
+<td><code>server</code></td>
+</tr>
+<tr>
+<td><code>客户端需装, 服务端可选</code> / <code>客户端可选, 服务端需装</code> / 两端都需装</td>
+<td><code>both</code></td>
+</tr>
+<tr>
+<td>只有半边信息（如只写「客户端需装」）</td>
+<td><code>both</code>（保守）</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>⚠️ <strong>与 <code>HANDOFF.md</code> 2.4 节的差异（有意保留）</strong>：那一节把 Xaero 小地图人工确认为
+「纯客户端」，但按上面的口径，本工具会判 <code>both</code>。这是<strong>刻意的取舍</strong> —— 服务端多装
+一个 Xaero 小地图不会崩，而漏装一个真正需要服务端的 mod 会崩。
+<code>tests/known_sides.json</code> 里这类样本的期望值已按本口径标注为 <code>both</code>。</p>
+</blockquote>
 <h3 id="坑-3-handoff-md-2-1-表格里-锂-与-铷-的-classid-都是-36">坑 3：<code>HANDOFF.md</code> 2.1 表格里「锂」与「铷」的 classId 都是 36</h3>
 <p>同一个 classId 不可能对应两个 mod，这是笔误。<strong>不要把那张表直接当准确率基准集</strong>，
 里面的「运行环境」是 mcmod 的字段原值，不等于人工确认的真实侧别。</p>

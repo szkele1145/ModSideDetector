@@ -51,14 +51,13 @@ class TestParseRunEnv(unittest.TestCase):
     def test_client_only(self) -> None:
         self.assertEqual(parse_run_env("客户端需装, 服务端无效")[0], SIDE_CLIENT)
         self.assertEqual(parse_run_env("客户端可选, 服务端无效")[0], SIDE_CLIENT)
-        # 「服务端可选」= 服务端不装也能跑（Xaero 小地图实测就是这条文案）
-        self.assertEqual(parse_run_env("客户端需装, 服务端可选")[0], SIDE_CLIENT)
-
     def test_both(self) -> None:
         self.assertEqual(parse_run_env("客户端需装, 服务端需装")[0], SIDE_BOTH)
         self.assertEqual(parse_run_env("客户端可选, 服务端可选")[0], SIDE_BOTH)
-        # 客户端只是「可选」时不能判单侧：客户端可选 + 服务端需装 -> 保守双端
         self.assertEqual(parse_run_env("客户端可选, 服务端需装")[0], SIDE_BOTH)
+        # 项目口径：「可选」也算要装（只有「无效」才算不需要）。
+        # 所以「客户端需装 + 服务端可选」-> 双端，不是纯客户端。
+        self.assertEqual(parse_run_env("客户端需装, 服务端可选")[0], SIDE_BOTH)
 
     def test_server_only(self) -> None:
         self.assertEqual(parse_run_env("服务端需装, 客户端无效")[0], SIDE_SERVER)

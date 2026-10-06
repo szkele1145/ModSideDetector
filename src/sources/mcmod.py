@@ -4,12 +4,19 @@
 
 ===========================  ============
 ``客户端需装, 服务端无效``   纯客户端
-``客户端需装, 服务端需装``   双端
 ``客户端可选, 服务端无效``   纯客户端
-``客户端需装, 服务端可选``   纯客户端（服务端**不装也能跑**，如 Xaero 小地图）
-``客户端可选, 服务端可选``   双端（两边都只是可选，保守）
+``服务端需装, 客户端无效``   纯服务端
+``客户端需装, 服务端需装``   双端
+``客户端需装, 服务端可选``   双端
+``客户端可选, 服务端需装``   双端
+``客户端可选, 服务端可选``   双端
 ``客户端需装``               只有半边信息 -> **保守判双端**
 ===========================  ============
+
+**核心口径（项目所有者确认）：只有「无效」才算不需要；「需装」和「可选」一律
+视为需要。** 理由与全局的保守原则一致 —— 代价不对等：多发一个 mod 只是浪费带宽，
+漏发一个 mod 会让客户端/服务端直接崩游戏。因此「客户端需装 + 服务端可选」判**双端**，
+而不是因为「服务端可选」就判纯客户端。
 
 **硬约束（HANDOFF 实测）**
 
@@ -80,10 +87,16 @@ _WS_RE = re.compile(r"[\s\u3000]+")
 def parse_run_env(text: Optional[str]) -> Tuple[str, str]:
     """把「运行环境」原文翻成 ``(side, 依据说明)``。
 
-    **保守优先**：只有拿到明确的「某端无效 / 服务端可选」才敢判单侧；只有半边
-    信息时一律判双端（HANDOFF 实测：``创世神`` 在 mcmod 上只写了「客户端需装」，
-    而它其实是双端 mod）。「客户端可选 + 服务端需装」同样保守判双端 ——
-    客户端「可选」不代表客户端不需要。
+    **口径（项目所有者确认）：只有「无效」才算不需要；「需装」和「可选」一律视为需要。**
+
+    代价不对等：多判一端只是多发一个 mod（浪费带宽），少判一端会让那一端缺 mod
+    直接崩游戏。所以：
+
+    * ``服务端无效``（且服务端没被标「需装/可选」）-> 纯客户端；
+    * ``客户端无效``（且客户端没被标「需装/可选」）-> 纯服务端；
+    * 两端都被标了「需装」或「可选」-> 双端；
+    * 只有半边信息（如只写「客户端需装」）-> 保守判双端
+      （HANDOFF 实测：``创世神`` 在 mcmod 上只写了「客户端需装」，而它其实是双端）。
 
     识别不到的文案返回 ``unknown``，交由上层降级到其它数据源。
     """
@@ -101,25 +114,20 @@ def parse_run_env(text: Optional[str]) -> Tuple[str, str]:
 
     client_mentioned = c_need or c_opt or c_bad
     server_mentioned = s_need or s_opt or s_bad
+    # 「需装」与「可选」都算**需要**（可选 = 可以装，不是不必装）
     client_needed = c_need or c_opt
     server_needed = s_need or s_opt
 
     if not (client_mentioned or server_mentioned):
         return SIDE_UNKNOWN, f"无法识别的运行环境文案「{raw}」"
 
-    # 「服务端无效」= 服务端装了没用 -> 纯客户端（mcmod 上最常见的写法）
+    # 「无效」= 该端装了没用 -> 不需要。这是唯一能推出单侧结论的依据。
     if s_bad and not server_needed:
         return SIDE_CLIENT, f"运行环境「{raw}」-> 服务端无效"
     if c_bad and not client_needed:
         return SIDE_SERVER, f"运行环境「{raw}」-> 客户端无效"
-    # 「服务端可选」= 服务端**不装也能跑**（与 Modrinth 的 server_side=optional 同义）：
-    # 客户端必装 + 服务端可选 -> 纯客户端。实测 Xaero 小地图就是这条文案，判双端
-    # 会让整合包作者白给服务端塞一堆用不上的 mod。
-    # 注意：客户端只是「可选」时不能这么判（两边都可选 -> 保守判双端）。
-    if c_need and s_opt and not s_need:
-        return SIDE_CLIENT, f"运行环境「{raw}」-> 服务端可选（服务端不装也能跑）"
     if client_needed and server_needed:
-        return SIDE_BOTH, f"运行环境「{raw}」-> 两端都涉及"
+        return SIDE_BOTH, f"运行环境「{raw}」-> 两端都需要"
     if client_mentioned and server_mentioned:
         return SIDE_BOTH, f"运行环境「{raw}」文案组合异常，保守判双端"
     if client_needed or server_needed:
