@@ -63,6 +63,18 @@ class Config:
     #: jar 元数据缓存（含哈希）是否复用。False 则每次重新计算哈希
     reuse_jar_hash: bool = True
 
+    # --- AutoSync 网络上报（MSFP / 裸 TCP，见 src/upload.py）-----------
+    #: 开关。**默认关** —— 这个功能不强制使用
+    autosync_report_enabled: bool = False
+    #: AutoSync 地址（域名或 IP；经 frp 映射到公网）
+    autosync_host: str = ""
+    #: AutoSync 的 MSFP 端口
+    autosync_port: int = 8123
+    #: 共享令牌（单行、不含空格）
+    autosync_token: str = ""
+    #: 连接 / 读写超时（秒）
+    autosync_timeout: float = 30.0
+
     # --- 界面 ---------------------------------------------------------
     appearance: str = "dark"  # dark | light | system
     #: 结果表格一次最多渲染多少行（避免上万行时卡顿）

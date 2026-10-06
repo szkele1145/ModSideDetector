@@ -21,6 +21,10 @@ ModSideDetector 的做法是**多源交叉**：MC 百科（mcmod.cn）的「运�
 
 ### 图形界面（推荐）
 
+![ModSideDetector 界面](docs/assets/gui-preview.png)
+
+> 上图是**真实运行截图**（151 个模组扫描后的结果表格）。
+
 ```powershell
 python -m src.main                        # 打开 GUI
 python -m src.main --mods-dir "D:\mc\mods"  # 打开并立即开始扫描
@@ -39,6 +43,7 @@ python -m src.main --mods-dir "D:\mc\mods"  # 打开并立即开始扫描
 界面功能：**选文件夹 / 拖拽文件夹**、扫描进度（进度条 + 当前文件名 + 已用时间与预计剩余）、
 结果表格（**按列排序**、**按侧别筛选**、**冲突与 unknown 高亮**）、**双击行人工改判**（写入缓存）、
 导出 `side-report.json/.csv/.txt`、**导出到 AutoSync 目录**、**一键分类（只复制）**、
+**上报到 AutoSync（勾选开关后扫描完自动上报；可即时改地址 / 端口 / 令牌并「立即上报」）**、
 底部状态栏（目录 / 各侧别计数 / 耗时 / 错误数）。
 
 或者直接双击 `dist\ModSideDetector\ModSideDetector.exe`（免装 Python，见下方「打包」）。
@@ -61,6 +66,9 @@ python -m src scan "D:\mc\mods" --no-mcmod
 # 额外写一份给 AutoSync 读的文件
 python -m src scan "D:\mc\mods" --for-autosync "D:\AutoSync\data"
 
+# 扫描完直接把结果上报给 AutoSync（MSFP / 裸 TCP）
+python -m src scan "D:\mc\mods" --report-to-autosync --autosync-host sync.example.com --autosync-token 你的令牌
+
 # 人工确认某个 mod（写进缓存，永久生效）
 python -m src review "D:\mc\mods" --name sodium.jar --side client --note "服主确认"
 
@@ -82,6 +90,9 @@ python -m src cache --clear
 | `--out-dir <目录>` | 报告输出目录（默认与 mods 目录相同） |
 | `--json-only` | 只写 JSON，不写 CSV/TXT |
 | `--for-autosync <目录>` | 额外写一份 AutoSync 可读的 `side-report.json` |
+| `--report-to-autosync` | 扫描完成后把报告上报给 AutoSync（等价于临时打开 `autosync_report_enabled`） |
+| `--autosync-host <地址>` / `--autosync-port <端口>` / `--autosync-token <令牌>` | 临时覆盖上报连接设置（**不写回 config.json**） |
+| `--upload-file <路径>` | 不上报本次扫描结果，改为把指定文件（如 `side-report.json`）发给 AutoSync |
 | `--limit N` | 只扫描前 N 个 jar（冒烟测试用） |
 | `--no-mcmod` / `--no-modrinth` / `--no-heuristics` | 关闭对应数据源 |
 | `--offline` | 完全离线（等价于关掉 mcmod + Modrinth） |
@@ -155,6 +166,46 @@ python -m src scan "D:\mc\mods" --for-autosync "D:\AutoSync\data"
 
 > **一键分类默认是「复制」不是「移动」**，且目标同名文件内容不同时**绝不覆盖**（只记冲突）。
 > 源文件永远不动 —— 删错了没法恢复，复制错了只是浪费磁盘。
+
+### 方式 B：网络上报（MSFP / 裸 TCP）
+
+除了写文件，还可以在扫描完成后把同一份 `side-report.json` 内容**直接经 TCP 发给 AutoSync**，
+由对方接收并存库。这条路走 **MSFP 协议**（裸 TCP，默认端口 8123，经 frp 映射到公网），
+**不是 HTTP** —— AutoSync 跑在阿里云大陆节点，备案拦截系统会拦 HTTP 流量，裸 TCP 不受影响。
+
+**默认关闭**（`autosync_report_enabled: false`），不强制使用；不打开时程序不会发起任何连接。
+
+```jsonc
+{
+  "autosync_report_enabled": false,  // 开关，默认关
+  "autosync_host": "",               // AutoSync 地址（域名或 IP）
+  "autosync_port": 8123,             // 端口
+  "autosync_token": "",              // 共享令牌（单行、不含空格）
+  "autosync_timeout": 30.0           // 连接 / 读写超时（秒）
+}
+```
+
+命令行（**这些开关只对本次运行生效，绝不写回 `config.json`**）：
+
+```powershell
+# 扫描完上报，连接参数临时覆盖
+python -m src scan "D:\mc\mods" --report-to-autosync --autosync-host sync.example.com --autosync-port 8123 --autosync-token 你的令牌
+
+# 只把磁盘上已有的报告发出去（不重新扫描）
+python -m src scan "D:\mc\mods" --upload-file "D:\mc\mods\side-report.json" --autosync-host sync.example.com --autosync-token 你的令牌
+```
+
+成功会打印对方返回的条目数（`[ok] 上报成功：对方返回 151 条`），失败会打印原因
+（令牌不对 / 对方未启用 / 超时 / 连不上 …）。**上报失败不会影响扫描结果，也不会改变 scan 的退出码。**
+
+图形界面：底部操作区有一行「上报到 AutoSync」设置条 —— **开关**、**地址**、**端口**、
+**令牌**（默认 `*` 遮罩，旁边的「显示 / 隐藏」按钮可临时看明文）、**「立即上报」**、**「保存设置」**。
+「保存设置」写回 `config.json`；开关打开后，每次扫描完成都会自动上报（在后台线程里跑，不阻塞界面）。
+
+协议一句话：连上后发 `REPORT <token> <length>\n` + `<length>` 字节的 UTF-8 JSON（`side-report.json` 全文，
+长度按**字节**算），对方回一行 `OK <count>` / `ERR unauthorized` / `ERR disabled` / `ERR too large` /
+`ERR bad request` / `ERR internal <detail>`。实现见 [`src/upload.py`](src/upload.py)。
+
 
 ---
 

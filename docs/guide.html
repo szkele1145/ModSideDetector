@@ -63,7 +63,10 @@
 </li>
 <li><a href="#判定结论怎么读">判定结论怎么读</a></li>
 <li><a href="#数据源与实测覆盖率">数据源与实测覆盖率</a></li>
-<li><a href="#与-autosync-联动">与 AutoSync 联动</a></li>
+<li><a href="#与-autosync-联动">与 AutoSync 联动</a><ul>
+<li><a href="#方式-b-网络上报-msfp-裸-tcp">方式 B：网络上报（MSFP / 裸 TCP）</a></li>
+</ul>
+</li>
 <li><a href="#打包自己的-exe">打包自己的 exe</a><ul>
 <li><a href="#打包产物里没有什么">打包产物里没有什么</a></li>
 </ul>
@@ -94,6 +97,10 @@
 <hr>
 <h2 id="快速开始">快速开始</h2>
 <h3 id="图形界面-推荐">图形界面（推荐）</h3>
+<p><img alt="ModSideDetector 界面" src="assets/gui-preview.png"></p>
+<blockquote>
+<p>上图是<strong>真实运行截图</strong>（151 个模组扫描后的结果表格）。</p>
+</blockquote>
 <div class="codeblock"><div class="codeblock-head"><span class="code-lang">PowerShell</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code class="language-powershell">python <span class="hl-k">-m</span> src.main                        <span class="hl-c"># 打开 GUI</span>
 python <span class="hl-k">-m</span> src.main -<span class="hl-k">-mods-dir</span> <span class="hl-s">"D:\mc\mods"</span>  <span class="hl-c"># 打开并立即开始扫描</span></code></pre></div>
 <p><code>src/main.py</code> 支持的参数：</p>
@@ -130,6 +137,7 @@ python <span class="hl-k">-m</span> src.main -<span class="hl-k">-mods-dir</span
 <p>界面功能：<strong>选文件夹 / 拖拽文件夹</strong>、扫描进度（进度条 + 当前文件名 + 已用时间与预计剩余）、
 结果表格（<strong>按列排序</strong>、<strong>按侧别筛选</strong>、<strong>冲突与 unknown 高亮</strong>）、<strong>双击行人工改判</strong>（写入缓存）、
 导出 <code>side-report.json/.csv/.txt</code>、<strong>导出到 AutoSync 目录</strong>、<strong>一键分类（只复制）</strong>、
+<strong>上报到 AutoSync（勾选开关后扫描完自动上报；可即时改地址 / 端口 / 令牌并「立即上报」）</strong>、
 底部状态栏（目录 / 各侧别计数 / 耗时 / 错误数）。</p>
 <p>或者直接双击 <code>dist\ModSideDetector\ModSideDetector.exe</code>（免装 Python，见下方「打包」）。</p>
 <p>界面上可以：选/拖入 <code>mods</code> 文件夹 → 看进度 → 结果表格按列排序、按侧别筛选 → <strong>双击某行人工改判</strong>（结论写入缓存，下次扫描直接沿用）→ 导出报告 → 一键分类。</p>
@@ -147,6 +155,9 @@ python <span class="hl-k">-m</span> src scan <span class="hl-s">"D:\mc\mods"</sp
 
 <span class="hl-c"># 额外写一份给 AutoSync 读的文件</span>
 python <span class="hl-k">-m</span> src scan <span class="hl-s">"D:\mc\mods"</span> -<span class="hl-k">-for-autosync</span> <span class="hl-s">"D:\AutoSync\data"</span>
+
+<span class="hl-c"># 扫描完直接把结果上报给 AutoSync（MSFP / 裸 TCP）</span>
+python <span class="hl-k">-m</span> src scan <span class="hl-s">"D:\mc\mods"</span> -<span class="hl-k">-report-to-autosync</span> -<span class="hl-k">-autosync-host</span> sync.example.com -<span class="hl-k">-autosync-token</span> 你的令牌
 
 <span class="hl-c"># 人工确认某个 mod（写进缓存，永久生效）</span>
 python <span class="hl-k">-m</span> src review <span class="hl-s">"D:\mc\mods"</span> -<span class="hl-k">-name</span> sodium.jar -<span class="hl-k">-side</span> client -<span class="hl-k">-note</span> <span class="hl-s">"服主确认"</span>
@@ -181,6 +192,18 @@ python <span class="hl-k">-m</span> src cache -<span class="hl-k">-clear</span><
 <tr>
 <td><code>--for-autosync &lt;目录&gt;</code></td>
 <td>额外写一份 AutoSync 可读的 <code>side-report.json</code></td>
+</tr>
+<tr>
+<td><code>--report-to-autosync</code></td>
+<td>扫描完成后把报告上报给 AutoSync（等价于临时打开 <code>autosync_report_enabled</code>）</td>
+</tr>
+<tr>
+<td><code>--autosync-host &lt;地址&gt;</code> / <code>--autosync-port &lt;端口&gt;</code> / <code>--autosync-token &lt;令牌&gt;</code></td>
+<td>临时覆盖上报连接设置（<strong>不写回 config.json</strong>）</td>
+</tr>
+<tr>
+<td><code>--upload-file &lt;路径&gt;</code></td>
+<td>不上报本次扫描结果，改为把指定文件（如 <code>side-report.json</code>）发给 AutoSync</td>
 </tr>
 <tr>
 <td><code>--limit N</code></td>
@@ -318,6 +341,32 @@ python <span class="hl-k">-m</span> src cache -<span class="hl-k">-clear</span><
 <p><strong>一键分类默认是「复制」不是「移动」</strong>，且目标同名文件内容不同时<strong>绝不覆盖</strong>（只记冲突）。
 源文件永远不动 —— 删错了没法恢复，复制错了只是浪费磁盘。</p>
 </blockquote>
+<h3 id="方式-b-网络上报-msfp-裸-tcp">方式 B：网络上报（MSFP / 裸 TCP）</h3>
+<p>除了写文件，还可以在扫描完成后把同一份 <code>side-report.json</code> 内容<strong>直接经 TCP 发给 AutoSync</strong>，
+由对方接收并存库。这条路走 <strong>MSFP 协议</strong>（裸 TCP，默认端口 8123，经 frp 映射到公网），
+<strong>不是 HTTP</strong> —— AutoSync 跑在阿里云大陆节点，备案拦截系统会拦 HTTP 流量，裸 TCP 不受影响。</p>
+<p><strong>默认关闭</strong>（<code>autosync_report_enabled: false</code>），不强制使用；不打开时程序不会发起任何连接。</p>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">文本</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code class="language-jsonc">{
+  "autosync_report_enabled": false,  // 开关，默认关
+  "autosync_host": "",               // AutoSync 地址（域名或 IP）
+  "autosync_port": <span class="hl-n">8123</span>,             // 端口
+  "autosync_token": "",              // 共享令牌（单行、不含空格）
+  "autosync_timeout": <span class="hl-n">30.0</span>           // 连接 / 读写超时（秒）
+}</code></pre></div>
+<p>命令行（<strong>这些开关只对本次运行生效，绝不写回 <code>config.json</code></strong>）：</p>
+<div class="codeblock"><div class="codeblock-head"><span class="code-lang">PowerShell</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code class="language-powershell"><span class="hl-c"># 扫描完上报，连接参数临时覆盖</span>
+python <span class="hl-k">-m</span> src scan <span class="hl-s">"D:\mc\mods"</span> -<span class="hl-k">-report-to-autosync</span> -<span class="hl-k">-autosync-host</span> sync.example.com -<span class="hl-k">-autosync-port</span> <span class="hl-n">8123</span> -<span class="hl-k">-autosync-token</span> 你的令牌
+
+<span class="hl-c"># 只把磁盘上已有的报告发出去（不重新扫描）</span>
+python <span class="hl-k">-m</span> src scan <span class="hl-s">"D:\mc\mods"</span> -<span class="hl-k">-upload-file</span> <span class="hl-s">"D:\mc\mods\side-report.json"</span> -<span class="hl-k">-autosync-host</span> sync.example.com -<span class="hl-k">-autosync-token</span> 你的令牌</code></pre></div>
+<p>成功会打印对方返回的条目数（<code>[ok] 上报成功：对方返回 151 条</code>），失败会打印原因
+（令牌不对 / 对方未启用 / 超时 / 连不上 …）。<strong>上报失败不会影响扫描结果，也不会改变 scan 的退出码。</strong></p>
+<p>图形界面：底部操作区有一行「上报到 AutoSync」设置条 —— <strong>开关</strong>、<strong>地址</strong>、<strong>端口</strong>、
+<strong>令牌</strong>（默认 <code>*</code> 遮罩，旁边的「显示 / 隐藏」按钮可临时看明文）、<strong>「立即上报」</strong>、<strong>「保存设置」</strong>。
+「保存设置」写回 <code>config.json</code>；开关打开后，每次扫描完成都会自动上报（在后台线程里跑，不阻塞界面）。</p>
+<p>协议一句话：连上后发 <code>REPORT &lt;token&gt; &lt;length&gt;\n</code> + <code>&lt;length&gt;</code> 字节的 UTF-8 JSON（<code>side-report.json</code> 全文，
+长度按<strong>字节</strong>算），对方回一行 <code>OK &lt;count&gt;</code> / <code>ERR unauthorized</code> / <code>ERR disabled</code> / <code>ERR too large</code> /
+<code>ERR bad request</code> / <code>ERR internal &lt;detail&gt;</code>。实现见 <a href="src/upload.py"><code>src/upload.py</code></a>。</p>
 <hr>
 <h2 id="打包自己的-exe">打包自己的 exe</h2>
 <div class="codeblock"><div class="codeblock-head"><span class="code-lang">PowerShell</span><button class="copy-btn" type="button" data-copy-btn>复制</button></div><pre><code class="language-powershell">powershell <span class="hl-k">-ExecutionPolicy</span> Bypass <span class="hl-k">-File</span> build.ps1

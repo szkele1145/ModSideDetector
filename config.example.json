@@ -18,6 +18,11 @@
   "unknown_as": "both",
   "cache_ttl_hours": 720.0,
   "reuse_jar_hash": true,
+  "autosync_report_enabled": false,
+  "autosync_host": "",
+  "autosync_port": 8123,
+  "autosync_token": "",
+  "autosync_timeout": 30.0,
   "appearance": "dark",
   "ui_max_rows": 2000
 }

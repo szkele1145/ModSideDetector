@@ -42,6 +42,7 @@ from ..config import Config, load_config, save_config
 from ..detector import Detector, ModResult, ScanReport
 from ..paths import default_config_path, resolve_cache_dir, resolve_output_dir
 from ..report import JSON_NAME, autosync_payload, classify_copy, write_all, write_json
+from ..upload import UploadResult, send_report_file, send_side_report
 from ..verdict import (
     CONFIDENCE_LABELS,
     SIDE_BOTH,
@@ -217,6 +218,9 @@ class MainWindow(ctk.CTk):
         self._cancel_event = threading.Event()
         self._scanning = False
         self._classifying = False
+        self._uploading = False
+        self._token_visible = False
+        self._autosync_report_path: Optional[Path] = None
         self._started_at = 0.0
         self._row_mod: Dict[str, ModResult] = {}
         self._sort_col = "side"
@@ -461,23 +465,88 @@ class MainWindow(ctk.CTk):
         frame = ctk.CTkFrame(self)
         frame.grid(row=row, column=0, sticky="ew", padx=10, pady=4)
 
+        # 第一行：上报到 AutoSync 的连接设置
+        self._build_autosync_row(frame)
+
+        # 第二行：提示 + 导出类按钮
+        bar = ctk.CTkFrame(frame, fg_color="transparent")
+        bar.pack(fill="x")
+
         ctk.CTkLabel(
-            frame,
+            bar,
             text="提示：双击任意一行可人工修正判定（写入缓存，下次扫描直接沿用）",
             text_color=("gray35", "gray65"),
             font=ctk.CTkFont(size=11),
         ).pack(side="left", padx=10, pady=8)
 
         self.classify_button = ctk.CTkButton(
-            frame, text="一键分类（复制）…", width=150, command=self.classify_copy_action
+            bar, text="一键分类（复制）…", width=150, command=self.classify_copy_action
         )
         self.classify_button.pack(side="right", padx=(6, 10), pady=8)
         self.autosync_button = ctk.CTkButton(
-            frame, text="导出到 AutoSync 目录…", width=170, command=self.export_to_autosync
+            bar, text="导出到 AutoSync 目录…", width=170, command=self.export_to_autosync
         )
         self.autosync_button.pack(side="right", padx=6, pady=8)
-        self.export_button = ctk.CTkButton(frame, text="导出报告…", width=110, command=self.export_reports)
+        self.export_button = ctk.CTkButton(bar, text="导出报告…", width=110, command=self.export_reports)
         self.export_button.pack(side="right", padx=6, pady=8)
+
+    def _build_autosync_row(self, parent: Any) -> None:
+        """「上报到 AutoSync」设置条：开关 / 地址 / 端口 / 令牌 / 立即上报 / 保存设置。
+
+        放在底部操作区（表格下方、状态栏上方），不挤占数据源开关那一排。
+        令牌默认遮罩显示，旁边的小按钮可以临时看明文。
+        """
+        frame = ctk.CTkFrame(parent, fg_color="transparent")
+        frame.pack(fill="x", padx=10, pady=(8, 0))
+        frame.grid_columnconfigure(6, weight=1)  # 令牌输入框吃掉多余宽度
+
+        self.autosync_var = tk.BooleanVar(value=bool(self.config.autosync_report_enabled))
+        self.autosync_switch = ctk.CTkSwitch(
+            frame, text="上报到 AutoSync", variable=self.autosync_var, command=self._on_toggle_autosync
+        )
+        self.autosync_switch.grid(row=0, column=0, padx=(0, 12), sticky="w")
+
+        ctk.CTkLabel(frame, text="地址：").grid(row=0, column=1, padx=(0, 4), sticky="w")
+        self.autosync_host_var = tk.StringVar(value=self.config.autosync_host)
+        self.autosync_host_entry = ctk.CTkEntry(
+            frame, textvariable=self.autosync_host_var, width=200, placeholder_text="域名或 IP"
+        )
+        self.autosync_host_entry.grid(row=0, column=2, padx=(0, 12), sticky="w")
+
+        ctk.CTkLabel(frame, text="端口：").grid(row=0, column=3, padx=(0, 4), sticky="w")
+        self.autosync_port_var = tk.StringVar(value=str(self.config.autosync_port))
+        self.autosync_port_entry = ctk.CTkEntry(frame, textvariable=self.autosync_port_var, width=72)
+        self.autosync_port_entry.grid(row=0, column=4, padx=(0, 12), sticky="w")
+
+        ctk.CTkLabel(frame, text="令牌：").grid(row=0, column=5, padx=(0, 4), sticky="w")
+        self.autosync_token_var = tk.StringVar(value=self.config.autosync_token)
+        self.autosync_token_entry = ctk.CTkEntry(
+            frame, textvariable=self.autosync_token_var, show="*", placeholder_text="共享令牌（token）"
+        )
+        self.autosync_token_entry.grid(row=0, column=6, padx=(0, 4), sticky="ew")
+
+        self.token_visible_button = ctk.CTkButton(
+            frame, text="显示", width=48, command=self._toggle_token_visibility
+        )
+        self.token_visible_button.grid(row=0, column=7, padx=(0, 12), sticky="w")
+
+        self.report_now_button = ctk.CTkButton(frame, text="立即上报", width=90, command=self.report_now)
+        self.report_now_button.grid(row=0, column=8, padx=(0, 6), sticky="w")
+
+        self.save_autosync_button = ctk.CTkButton(
+            frame, text="保存设置", width=90, command=self.save_autosync_settings
+        )
+        self.save_autosync_button.grid(row=0, column=9, sticky="w")
+
+        ctk.CTkLabel(
+            frame,
+            text=(
+                "开关默认关闭；地址或令牌为空时不会发起请求。"
+                "「保存设置」写回 config.json（命令行参数不写回）。"
+            ),
+            text_color=("gray35", "gray65"),
+            font=ctk.CTkFont(size=11),
+        ).grid(row=1, column=0, columnspan=10, sticky="w", pady=(4, 0))
 
     # ---------------------------------------------------------------- 状态栏
     def _build_statusbar(self, row: int) -> None:
@@ -522,6 +591,145 @@ class MainWindow(ctk.CTk):
         except OSError:
             # 配置写不了不该影响使用（例如 exe 放在只读目录）
             pass
+
+    # ================================================================ AutoSync 上报
+    def _collect_autosync_settings(self, save: bool = False) -> bool:
+        """把界面上的上报设置同步进 ``self.config``；``save=True`` 时写回 config.json。
+
+        端口填得不对时返回 False（并弹窗说明），调用方据此跳过上报。
+        """
+        self.config.autosync_report_enabled = bool(self.autosync_var.get())
+        self.config.autosync_host = self.autosync_host_var.get().strip()
+        raw_port = self.autosync_port_var.get().strip()
+        try:
+            port = int(raw_port)
+        except ValueError:
+            messagebox.showerror("端口不合法", f"端口必须是数字，当前填的是：{raw_port!r}")
+            return False
+        if not (0 < port < 65536):
+            messagebox.showerror("端口不合法", f"端口应在 1-65535 之间，当前填的是：{port}")
+            return False
+        self.config.autosync_port = port
+        self.config.autosync_token = self.autosync_token_var.get().strip()
+        if save:
+            self._save_config()
+        return True
+
+    def _on_toggle_autosync(self) -> None:
+        """开关：与其它开关一致立即落盘（地址 / 令牌仍由「保存设置」负责）。"""
+        self.config.autosync_report_enabled = bool(self.autosync_var.get())
+        self._save_config()
+        state = "已开启" if self.config.autosync_report_enabled else "已关闭"
+        self.status_label.configure(text=f"AutoSync 上报{state}（地址 / 令牌改完请点「保存设置」）")
+
+    def _toggle_token_visibility(self) -> None:
+        """令牌「显示 / 隐藏」——只影响显示，不改变配置。"""
+        self._token_visible = not self._token_visible
+        self.autosync_token_entry.configure(show="" if self._token_visible else "*")
+        self.token_visible_button.configure(text="隐藏" if self._token_visible else "显示")
+
+    def save_autosync_settings(self) -> None:
+        """「保存设置」：把地址 / 端口 / 令牌 / 开关写回 config.json。"""
+        if not self._collect_autosync_settings(save=True):
+            return
+        target = f"{self.config.autosync_host or '（未填地址）'}:{self.config.autosync_port}"
+        self.status_label.configure(text=f"AutoSync 上报设置已保存：{target}")
+        messagebox.showinfo("已保存", f"上报设置已写入：\n{self.config_path}\n\n目标：{target}")
+
+    def _report_file_path(self) -> Path:
+        """上报用文件的落盘位置：上次导出 / 上报过的文件优先，否则用默认输出目录。"""
+        if self._autosync_report_path is not None:
+            return self._autosync_report_path
+        return Path(self._default_out_dir()) / JSON_NAME
+
+    def report_now(self) -> None:
+        """「立即上报」：把当前扫描结果落盘成 ``side-report.json`` 后发给 AutoSync。"""
+        if self._uploading:
+            return
+        if self.report is None or not self.report.mods:
+            messagebox.showinfo("暂无结果", "请先完成一次扫描，再点「立即上报」。")
+            return
+        if not self._collect_autosync_settings(save=False):
+            return
+
+        path = self._report_file_path()
+        try:
+            # 先把「即将发出去的内容」落盘：排查问题时能直接看到发的是什么
+            write_json(self.report, path, payload=autosync_payload(self.report))
+        except OSError as exc:
+            messagebox.showerror("写入失败", f"无法写出上报用的 {JSON_NAME}：\n{exc!r}")
+            return
+        self._autosync_report_path = path
+        self._start_upload(path=path, auto=False)
+
+    def _start_upload(
+        self,
+        path: Optional[Path] = None,
+        report: Optional[ScanReport] = None,
+        auto: bool = False,
+    ) -> None:
+        """把上报丢到后台线程。
+
+        **子线程里绝不碰控件** —— 结果通过 ``queue`` 回主线程（与扫描线程同一套做法）。
+        """
+        config = self.config
+        self._uploading = True
+        self.report_now_button.configure(state="disabled")
+        target = f"{config.autosync_host or '?'}:{config.autosync_port}"
+        self.status_label.configure(text=f"正在上报到 AutoSync（{target}）…")
+        self.file_label.configure(text=f"AutoSync：{target}")
+        self.after(POLL_MS, self._pump)
+
+        def worker() -> None:
+            try:
+                if path is not None:
+                    result = send_report_file(
+                        path,
+                        config.autosync_host,
+                        config.autosync_port,
+                        config.autosync_token,
+                        config.autosync_timeout,
+                    )
+                else:
+                    result = send_side_report(
+                        report,
+                        config.autosync_host,
+                        config.autosync_port,
+                        config.autosync_token,
+                        config.autosync_timeout,
+                    )
+                self._events.put(("upload_done", (result, bool(auto), "")))
+            except Exception:  # pragma: no cover - 兜底，上报模块本身已不抛异常
+                self._events.put(("upload_done", (None, bool(auto), traceback.format_exc())))
+
+        threading.Thread(target=worker, name="ModSideDetectorUpload", daemon=True).start()
+
+    def _on_upload_done(self, result: Optional[UploadResult], auto: bool, error: str = "") -> None:
+        self._uploading = False
+        self.report_now_button.configure(state="normal")
+
+        if result is None:
+            detail = (error or "未知错误").strip().splitlines()
+            text = detail[-1] if detail else "未知错误"
+            self.status_label.configure(text=f"上报失败：{text}")
+            logging.getLogger(__name__).error("上报失败：\n%s", error)
+            messagebox.showerror("上报失败", text)
+            return
+
+        if result.ok:
+            self.status_label.configure(text=f"上报成功：对方已接收 {result.count} 条")
+            self.file_label.configure(text=result.message)
+            if not auto:
+                messagebox.showinfo(
+                    "上报成功",
+                    f"{result.message}\n\n对方响应：{result.raw_response.strip() or '(空)'}",
+                )
+            return
+
+        # 失败：手动上报弹窗；自动上报也弹 —— 开关是用户自己打开的，静默失败最糟糕
+        self.status_label.configure(text=f"上报失败：{result.message}")
+        self.file_label.configure(text=f"上报失败：{result.message}")
+        messagebox.showwarning("上报失败", f"{result.message}\n\n（不影响本次扫描结果）")
 
     # ================================================================ 拖拽
     def _enable_drag_and_drop(self) -> None:
@@ -607,7 +815,7 @@ class MainWindow(ctk.CTk):
         self.time_label.configure(text="")
         self.scan_button.configure(state="disabled")
         self.cancel_button.configure(state="normal")
-        for button in (self.export_button, self.autosync_button, self.classify_button):
+        for button in (self.export_button, self.autosync_button, self.classify_button, self.report_now_button):
             button.configure(state="disabled")
         # 扫描期间锁住数据源开关：Config 是工作线程在读的，
         # 中途改会让同一次扫描的前后行为不一致
@@ -667,11 +875,13 @@ class MainWindow(ctk.CTk):
                     self._on_scan_error(str(payload))
                 elif kind == "classify_done":
                     self._on_classify_done(*payload)
+                elif kind == "upload_done":
+                    self._on_upload_done(*payload)
         except queue.Empty:
             pass
         except Exception:  # pragma: no cover - 界面异常不该让轮询停摆
             logging.getLogger(__name__).exception("刷新界面时出错")
-        if self._scanning or self._classifying:
+        if self._scanning or self._classifying or self._uploading:
             self.after(POLL_MS, self._pump)
 
     # ---------------------------------------------------------------- 进度
@@ -700,7 +910,7 @@ class MainWindow(ctk.CTk):
         self._scanning = False
         self.scan_button.configure(state="normal")
         self.cancel_button.configure(state="disabled")
-        for button in (self.export_button, self.autosync_button, self.classify_button):
+        for button in (self.export_button, self.autosync_button, self.classify_button, self.report_now_button):
             button.configure(state="normal")
         for switch in self.source_switches:
             switch.configure(state="normal")
@@ -730,11 +940,15 @@ class MainWindow(ctk.CTk):
                 "提示：mcmod 不可达时可先用 Modrinth + 启发式，联网后重新扫描。",
             )
 
+        # 扫描完成后按开关自动上报（开关关闭时什么都不做；上报失败也不影响扫描结果）
+        if bool(self.autosync_var.get()) and self._collect_autosync_settings(save=False):
+            self._start_upload(report=report, auto=True)
+
     def _on_scan_error(self, detail: str) -> None:
         self._scanning = False
         self.scan_button.configure(state="normal")
         self.cancel_button.configure(state="disabled")
-        for button in (self.export_button, self.autosync_button, self.classify_button):
+        for button in (self.export_button, self.autosync_button, self.classify_button, self.report_now_button):
             button.configure(state="normal")
         for switch in self.source_switches:
             switch.configure(state="normal")
@@ -941,6 +1155,9 @@ class MainWindow(ctk.CTk):
             return
         self.config.output_dir = out_dir
         self._save_config()
+        # 记住这份报告，之后「立即上报」可以直接发它
+        if paths:
+            self._autosync_report_path = Path(paths[0])
         messagebox.showinfo("导出完成", "已写出：\n\n" + "\n".join(str(path) for path in paths))
 
     def export_to_autosync(self) -> None:
@@ -960,6 +1177,7 @@ class MainWindow(ctk.CTk):
         except OSError as exc:
             messagebox.showerror("导出失败", f"写入 {JSON_NAME} 时出错：\n{exc!r}")
             return
+        self._autosync_report_path = Path(path)
         messagebox.showinfo(
             "导出完成",
             f"已写出 AutoSync 联动文件：\n{path}\n\n"

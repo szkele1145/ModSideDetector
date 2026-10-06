@@ -445,7 +445,12 @@ def _rewrite_links(body: str) -> str:
             )
         return m.group(0)
 
-    return re.sub(r'<a href="([^"]*)"', repl, body)
+    body = re.sub(r'<a href="([^"]*)"', repl, body)
+    # 站点产物都落在 docs/ 下，而 Markdown 里的相对路径是**相对仓库根**写的
+    # （例如 README 里 `docs/assets/gui-preview.png`）。在 docs/guide.html 里
+    # 必须剥掉 `docs/` 前缀，否则图片 404。
+    body = re.sub(r'(src=")docs/', r"\1", body)
+    return body
 
 
 def render_markdown(raw: str) -> tuple[str, str]:

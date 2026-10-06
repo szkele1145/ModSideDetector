@@ -156,9 +156,14 @@ $pyArgs += $EntryFile
 # ---- 执行打包 ---------------------------------------------------------------
 Write-Host ""
 Write-Host "执行: $Py $($pyArgs -join ' ')" -ForegroundColor DarkGray
+$ErrorActionPreference = "Continue"
+# PyInstaller 把 INFO 日志写到 stderr；若此时 $ErrorActionPreference = "Stop"，
+# PowerShell 会把它当成终止错误、脚本半路退出（实测踩过）。这里临时放宽。
 & $Py @pyArgs
-if ($LASTEXITCODE -ne 0) {
-    throw "PyInstaller 打包失败（退出码 $LASTEXITCODE）"
+$pyExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
+if ($pyExitCode -ne 0) {
+    throw "PyInstaller 打包失败（退出码 $pyExitCode）"
 }
 
 # ---- 结果 -------------------------------------------------------------------

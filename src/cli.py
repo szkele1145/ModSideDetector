@@ -8,6 +8,7 @@ GUI（:mod:`src.main`）与 CLI 共用 :class:`~src.detector.Detector`，逻辑�
     python -m src scan "D:\\mc\\mods"
     python -m src scan "D:\\mc\\mods" --limit 20 --no-mcmod
     python -m src scan "D:\\mc\\mods" --for-autosync "D:\\AutoSync\\data"
+    python -m src scan "D:\\mc\\mods" --report-to-autosync --autosync-host sync.example.com --autosync-token abc
     python -m src review "D:\\mc\\mods" --name sodium.jar --side client
     python -m src classify "D:\\mc\\mods" --out "D:\\mc\\server"
 """
@@ -35,6 +36,7 @@ from .report import (
     write_txt,
 )
 from .verdict import SIDE_LABELS, SIDES, normalize_side, side_label
+from .upload import UploadResult, send_report_file, send_side_report
 
 __all__ = ["main", "build_parser"]
 
@@ -115,6 +117,7 @@ def build_parser() -> argparse.ArgumentParser:
             f"  {APP_NAME} scan \"D:\\mc\\mods\"\n"
             f"  {APP_NAME} scan \"D:\\mc\\mods\" --limit 20 --no-mcmod\n"
             f"  {APP_NAME} scan \"D:\\mc\\mods\" --for-autosync \"D:\\AutoSync\\data\"\n"
+            f"  {APP_NAME} scan \"D:\\mc\\mods\" --report-to-autosync --autosync-host sync.example.com\n"
             f"  {APP_NAME} review \"D:\\mc\\mods\" --name sodium.jar --side client\n"
             f"  {APP_NAME} classify \"D:\\mc\\mods\" --out \"D:\\mc\\server\"\n"
         ),
@@ -143,6 +146,21 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--no-hash-cache", action="store_true", help="不复用 jar 哈希缓存")
     scan.add_argument("--min-interval", type=float, default=None, help="mcmod 抓取间隔秒数（默认 0.6）")
     scan.add_argument("--json-only", action="store_true", help="只写 JSON，不写 CSV/TXT")
+    # ---- 上报 AutoSync（MSFP / 裸 TCP）----
+    # 这几项都只是「本次运行的临时覆盖」，绝不写回 config.json
+    scan.add_argument(
+        "--report-to-autosync",
+        action="store_true",
+        help="扫描完成后把报告上报给 AutoSync（等价于临时打开 autosync_report_enabled）",
+    )
+    scan.add_argument("--autosync-host", default="", help="临时覆盖 AutoSync 地址（默认取配置）")
+    scan.add_argument("--autosync-port", type=int, default=None, help="临时覆盖 AutoSync 端口（默认 8123）")
+    scan.add_argument("--autosync-token", default="", help="临时覆盖共享令牌（默认取配置）")
+    scan.add_argument(
+        "--upload-file",
+        default="",
+        help="不上报本次扫描结果，改为把指定文件（如 side-report.json）发给 AutoSync",
+    )
 
     # ---- review ----
     review = sub.add_parser("review", help="人工确认某个 mod 的侧别（写入缓存，永久生效）")
@@ -201,6 +219,20 @@ def _load(path: Path, args: argparse.Namespace, console: Console) -> Tuple[Confi
             config.reuse_jar_hash = False
         if getattr(args, "min_interval", None) is not None:
             config.mcmod_min_interval = float(args.min_interval)
+    if args.command == "scan":
+        # AutoSync 上报：同样只改「生效配置」。写回磁盘的是 base_config，
+        # 所以 --autosync-* 这些覆盖不会污染 config.json。
+        if getattr(args, "report_to_autosync", False):
+            config.autosync_report_enabled = True
+        host_override = str(getattr(args, "autosync_host", "") or "").strip()
+        if host_override:
+            config.autosync_host = host_override
+        port_override = getattr(args, "autosync_port", None)
+        if port_override is not None:
+            config.autosync_port = int(port_override)
+        token_override = str(getattr(args, "autosync_token", "") or "").strip()
+        if token_override:
+            config.autosync_token = token_override
     return base, config
 
 
@@ -223,6 +255,47 @@ def cmd_scan(
         console.warn(f"[x] 目录不存在：{mods_dir}")
         return 2
     return _run_scan(args, config, console, mods_dir, base_config)
+
+
+def _do_upload(
+    config: Config,
+    console: Console,
+    report: Optional[ScanReport] = None,
+    path: Optional[Path] = None,
+) -> UploadResult:
+    """上报一次并打印结果。
+
+    **上报失败绝不影响 scan 的退出码**：这里只打印，不返回错误码给调用方。
+    """
+    target = f"{config.autosync_host or '?'}:{config.autosync_port}"
+    if path is not None:
+        console.info(f"正在上报文件到 AutoSync（{target}）：{path}")
+        result = send_report_file(
+            path,
+            config.autosync_host,
+            config.autosync_port,
+            config.autosync_token,
+            config.autosync_timeout,
+        )
+    else:
+        console.info(f"正在上报扫描结果到 AutoSync（{target}）…")
+        result = send_side_report(
+            report,
+            config.autosync_host,
+            config.autosync_port,
+            config.autosync_token,
+            config.autosync_timeout,
+        )
+
+    if result.ok:
+        console.info(f"[ok] 上报成功：对方返回 {result.count} 条")
+        if result.raw_response.strip():
+            console.debug(f"AutoSync 响应：{result.raw_response.strip()}")
+    else:
+        console.warn(f"[!] 上报失败：{result.message}（不影响本次扫描结果）")
+        if result.raw_response.strip():
+            console.debug(f"AutoSync 响应：{result.raw_response.strip()}")
+    return result
 
 
 def _run_scan(
@@ -272,6 +345,15 @@ def _run_scan(
 
     for path in written:
         console.info(f"已写出：{path}")
+
+    # ---------------------------------------------------------- 上报 AutoSync
+    # --upload-file 是显式动作，即使配置开关是关的也照发；
+    # 否则看配置开关（含 --report-to-autosync 的临时打开）。
+    upload_file = str(getattr(args, "upload_file", "") or "").strip()
+    if upload_file:
+        _do_upload(config, console, path=Path(upload_file).expanduser())
+    elif config.autosync_report_enabled:
+        _do_upload(config, console, report=report)
 
     console.info(f"总耗时：{time.monotonic() - started:.1f} 秒")
 
