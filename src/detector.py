@@ -55,6 +55,11 @@ CancelFn = Callable[[], bool]
 #: 主数据源（决定冲突与置信度）；mcmod 质量最高但它不参与「谁更权威」的猜测
 PRIMARY_SOURCES: Tuple[str, ...] = ("mcmod", "modrinth")
 
+#: 每处理这么多个 jar 就把缓存落盘一次。
+#: mcmod 是串行限流（0.6 秒/请求）的最慢环节，整个扫描要好几分钟 ——
+#: 只在末尾保存的话，用户中途取消（或被中断）会让已经抓到的结果**全部白费**。
+_AUTOSAVE_EVERY = 10
+
 
 @dataclass
 class ModResult:
@@ -463,9 +468,12 @@ class Detector:
             rel = str(path.relative_to(root)).replace("\\", "/")
             infos.append(self._inspect(path, rel))
             emit("scan", index, total, f"解析 jar 元数据：{rel}")
+            if index % _AUTOSAVE_EVERY == 0:
+                self.cache.save()
         if report.canceled:
             report.mods = [merge_verdicts(info, {}, None, self.config.unknown_as) for info in infos]
             report.elapsed = time.monotonic() - started
+            self.cache.save()  # 取消也要把已抓到的结果保住
             return report
 
         self._log("info", f"扫描到 {len(infos)} 个 jar，开始查询数据源")
@@ -485,9 +493,16 @@ class Detector:
         mcmod = self.mcmod()
         if self.config.use_mcmod and not stopped():
             targets = list(infos)
+
+            def _mcmod_progress(done: int, total_: int, msg: str) -> None:
+                emit("mcmod", done, total_, msg)
+                # 周期落盘：中途取消不能把已抓到的结果丢掉（实测踩过 —— 取消后缓存归零）
+                if done % _AUTOSAVE_EVERY == 0:
+                    self.cache.save()
+
             results = mcmod.lookup_many(
                 targets,
-                progress=lambda done, total_, msg: emit("mcmod", done, total_, msg),
+                progress=_mcmod_progress,
                 should_stop=stopped,
             )
             for rel, verdict in results.items():

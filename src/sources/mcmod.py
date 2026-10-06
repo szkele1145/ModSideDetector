@@ -432,33 +432,55 @@ class McModSource:
 def _name_matches(query: str, title: str) -> bool:
     """粗判「搜到的条目」是否就是我们要找的 mod。
 
-    只做保守判断：规范化后互为子串即算匹配。判不出来时返回 ``True``
+    只做保守判断：归一化后互为子串即算匹配。判不出来时返回 ``True``
     （宁可采信并降置信度，也不要因为标题格式差异丢掉高价值数据源）。
+
+    归一化见 :func:`_normalize_variants` —— 它会去掉所有格、空白、标点，
+    所以 ``xaeroworldmap`` 能匹配上标题 ``Xaero's World Map``。
     """
-    left = _WS_RE.sub("", str(query or "")).lower()
-    right = _WS_RE.sub("", str(title or "")).lower()
-    if not left or not right:
+    lefts = _normalize_variants(query)
+    rights = _normalize_variants(title)
+    if not lefts or not rights:
         return True
-    if left in right or right in left:
-        return True
-    # 去掉常见修饰后再比一次
-    strip = re.compile(r"[（()）\[\]【】\-_:：·.]")
-    left_core = strip.sub("", left)
-    right_core = strip.sub("", right)
-    if left_core and right_core and (left_core in right_core or right_core in left_core):
-        return True
+    for left in lefts:
+        for right in rights:
+            if left in right or right in left:
+                return True
     return False
 
 
-_DECOR_RE = re.compile(r"[（()）\[\]【】\-_:：·.]")
+#: 英语所有格：``Xaero's`` -> ``Xaero``（mcmod 标题里大量存在，不去掉就匹配不上 modId）
+_POSSESSIVE_RE = re.compile(r"['’]s(?![a-z])", re.IGNORECASE)
+#: 归一化的最后一步：只保留字母/数字/CJK 文字，其余（含空白与各种标点）一律丢弃。
+#: Python 的 ``\w`` 默认是 Unicode 语义，中文会被保留。
+_NOT_WORD_RE = re.compile(r"[\W_]+", re.UNICODE)
+#: 标题里的括号补充说明，例如 ``钠 (Sodium)`` 里的 ``Sodium``（严格匹配时要用）
 _PAREN_RE = re.compile(r"[（(\[【]([^）)\]】]{2,60})[）)\]】]")
 
 
+def _normalize_variants(value: str) -> List[str]:
+    """给出一个名字的归一化**变体**（去重后）。
+
+    为什么要多个变体：modId 有时会把所有格的 s 保留下来。
+    例如 ``reeses_sodium_options``（保留）对应标题 ``Reese's Sodium Options``
+    （去掉 ``'s`` 后是 ``Reese``），只试一种写法就会漏判 —— 而漏判会触发
+    mcmod 反复重试候选名，直接拖慢全量扫描。
+    """
+    text = html_module.unescape(str(value or ""))
+    variants: List[str] = []
+    for candidate in (_POSSESSIVE_RE.sub("", text), _POSSESSIVE_RE.sub("s", text)):
+        normalized = _NOT_WORD_RE.sub("", candidate.lower())
+        if normalized and normalized not in variants:
+            variants.append(normalized)
+    return variants
+
+
 def _normalize_name(value: str) -> str:
-    """规范化名字：反转义 -> 小写 -> 去空白 -> 去括号/连字符等修饰符。"""
-    text = html_module.unescape(str(value or "")).lower()
-    text = _WS_RE.sub("", text)
-    return _DECOR_RE.sub("", text)
+    """规范化名字（单数形式，用于严格匹配）：反转义 -> 去所有格 -> 小写 -> 只留字母数字与 CJK。"""
+    text = html_module.unescape(str(value or ""))
+    text = _POSSESSIVE_RE.sub("", text)
+    text = text.lower()
+    return _NOT_WORD_RE.sub("", text)
 
 
 def _exact_name_matches(query: str, title: str) -> bool:
