@@ -480,6 +480,25 @@ class MainWindow(ctk.CTk):
         # 第一行：上报到 AutoSync 的连接设置
         self._build_autosync_row(frame)
 
+        # 导出目录（常驻设置）：留空 = 导出到扫描目录（mods），与 AutoSync 默认探测位置一致
+        out_row = ctk.CTkFrame(frame, fg_color="transparent")
+        out_row.pack(fill="x", padx=10, pady=(8, 0))
+        out_row.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(out_row, text="导出目录：").grid(row=0, column=0, padx=(0, 4), sticky="w")
+        self.out_dir_var = tk.StringVar(value=str(self.config.output_dir or ""))
+        self.out_dir_entry = ctk.CTkEntry(
+            out_row,
+            textvariable=self.out_dir_var,
+            placeholder_text="留空 = 导出到扫描目录（mods/，AutoSync 默认去这里找）",
+        )
+        self.out_dir_entry.grid(row=0, column=1, sticky="ew", padx=(0, 6))
+        ctk.CTkButton(out_row, text="浏览…", width=76, command=self._pick_output_dir).grid(
+            row=0, column=2, padx=(0, 6)
+        )
+        ctk.CTkButton(out_row, text="恢复默认", width=86, command=self._reset_output_dir).grid(
+            row=0, column=3, padx=(0, 10)
+        )
+
         # 第二行：提示 + 导出类按钮
         bar = ctk.CTkFrame(frame, fg_color="transparent")
         bar.pack(fill="x")
@@ -1148,25 +1167,58 @@ class MainWindow(ctk.CTk):
         return True
 
     def _default_out_dir(self) -> str:
+        """当前生效的导出目录：界面上填了就用它，否则回落到配置值 / 扫描目录。"""
         mods_dir = Path(self.report.mods_dir) if self.report and self.report.mods_dir else Path.cwd()
-        return str(resolve_output_dir(self.config.output_dir, mods_dir))
+        try:
+            typed = self.out_dir_var.get().strip()
+        except (AttributeError, tk.TclError):
+            typed = ""
+        configured = typed or str(self.config.output_dir or "")
+        return str(resolve_output_dir(configured, mods_dir))
+
+    def _pick_output_dir(self) -> None:
+        """选择常驻的导出目录（写回 config.json）。"""
+        current = self.out_dir_var.get().strip() or self._default_out_dir()
+        chosen = filedialog.askdirectory(title="选择报告导出目录", initialdir=current, mustexist=False)
+        if not chosen:
+            return
+        self.out_dir_var.set(chosen)
+        self.config.output_dir = chosen
+        self._save_config()
+        self.file_label.configure(text=f"导出目录：{chosen}")
+
+    def _reset_output_dir(self) -> None:
+        """清空导出目录设置，回到「导出到扫描目录」的默认行为。"""
+        self.out_dir_var.set("")
+        self.config.output_dir = ""
+        self._save_config()
+        self.file_label.configure(text="导出目录已恢复默认：写到扫描目录（mods/）")
 
     def export_reports(self) -> None:
-        """导出 side-report.json / .csv / .txt 三件套。"""
+        """导出 side-report.json / .csv / .txt 三件套。
+
+        界面上**已设定**导出目录时直接用它（一键导出，不再弹框）；
+        留空才弹目录选择框 —— 这样既保住「零配置」的默认路径，又允许固定输出位置。
+        """
         if not self._require_report():
             return
         assert self.report is not None
-        out_dir = filedialog.askdirectory(
-            title="选择报告输出目录", initialdir=self._default_out_dir(), mustexist=False
-        )
-        if not out_dir:
-            return
+        configured = self.out_dir_var.get().strip()
+        if configured:
+            out_dir = configured
+        else:
+            out_dir = filedialog.askdirectory(
+                title="选择报告输出目录", initialdir=self._default_out_dir(), mustexist=False
+            )
+            if not out_dir:
+                return
         try:
             paths = write_all(self.report, Path(out_dir))
         except OSError as exc:
             messagebox.showerror("导出失败", f"写入报告时出错：\n{exc!r}")
             return
         self.config.output_dir = out_dir
+        self.out_dir_var.set(out_dir)
         self._save_config()
         # 记住这份报告，之后「立即上报」可以直接发它
         if paths:
