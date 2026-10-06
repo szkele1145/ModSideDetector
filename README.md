@@ -147,7 +147,7 @@ python -m src cache --clear
 
 | 项目 | 实测结果 |
 |---|---|
-| 人工确认基准集准确率 | **26 / 26 = 100%**（样本集 `tests/known_sides.json`） |
+| 人工确认基准集准确率 | **70 / 70 = 100%**（样本集 `tests/known_sides.json`：69 个条目、70 次匹配） |
 | **误判为纯服务端的数量** | **0** —— 铁律，由两个测试守着 |
 | 全量 151 个 mod 判定分布 | 纯客户端 30 / 双端 117 / 纯服务端 4 / 不确定 0 |
 | 判为纯服务端的 4 个 | BetterTab、CBC Peripheral、MiniMOTD、ServerCore（依据均为 `client_side=unsupported`，逐个核对成立） |
