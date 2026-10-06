@@ -25,6 +25,15 @@ ModSideDetector 的做法是**多源交叉**：MC 百科（mcmod.cn）的「运�
 
 > 上图是**真实运行截图**（151 个模组扫描后的结果表格）。
 
+**不想装 Python** 的话，直接下载打包好的 Windows 版（解压后双击 `ModSideDetector.exe`）：
+
+**[⬇ ModSideDetector-1.0.0-win64.zip](https://github.com/szkele1145/ModSideDetector/releases/latest)** —— 见 [Releases](https://github.com/szkele1145/ModSideDetector/releases)
+
+> ⚠️ PyInstaller 打的 exe **常被杀毒软件误报**（打包器的通用现象，不是本程序的问题）。若被拦截，
+> 请把**整个解压目录**加入白名单（不能只加 exe，它依赖同目录的 `_internal\`），详见下方「打包自己的 exe」。
+
+从源码运行：
+
 ```powershell
 python -m src.main                        # 打开 GUI
 python -m src.main --mods-dir "D:\mc\mods"  # 打开并立即开始扫描
