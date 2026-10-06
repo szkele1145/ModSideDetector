@@ -8,8 +8,8 @@ cache/
 
 # 扫描输出（报告体积可能不小）
 out/
-dist/
-build/
+/dist/
+/build/
 *.spec
 
 # --- 本地工具链（体积大，不入库）----------------------------------------
@@ -19,10 +19,23 @@ tools/*
 !tools/build_site.py
 
 # --- 宣传片 / 站点渲染的中间产物 ----------------------------------------
+# 逐帧截图（2455 张 ~600MB）与渲染中间产物：**绝不入库**
+promo/work/
 promo/frames/
 promo/audio/*.wav
-promo/work/
 site-preview/
+
+# 成片 mp4：体积大（每版 ~12MB），按项目所有者要求不入库，自行传 B 站 / 发 Release
+promo/dist/*.mp4
+
+# 归档的旧版产物
+promo/_old/
+
+# 鸿蒙字体的**原始全量字库**（8MB）；实际用的是子集化后内嵌进 HTML 的 woff2（77KB）
+promo/assets/fonts/HarmonyOS_Sans_SC.ttf
+
+# 配音对比样音（试听用，不是成片依赖）
+promo/audio/compare/
 
 # --- Python -------------------------------------------------------------
 __pycache__/

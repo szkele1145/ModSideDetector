@@ -1,0 +1,342 @@
+{
+  "male": [
+    {
+      "file": "01.mp3",
+      "before": 4.586,
+      "after": 3.478,
+      "cut": 1.108,
+      "ok": true
+    },
+    {
+      "file": "02.mp3",
+      "before": 4.226,
+      "after": 3.145,
+      "cut": 1.08,
+      "ok": true
+    },
+    {
+      "file": "03.mp3",
+      "before": 2.906,
+      "after": 1.758,
+      "cut": 1.148,
+      "ok": true
+    },
+    {
+      "file": "04.mp3",
+      "before": 2.882,
+      "after": 1.735,
+      "cut": 1.147,
+      "ok": true
+    },
+    {
+      "file": "05.mp3",
+      "before": 2.642,
+      "after": 1.418,
+      "cut": 1.224,
+      "ok": true
+    },
+    {
+      "file": "06.mp3",
+      "before": 2.642,
+      "after": 1.517,
+      "cut": 1.125,
+      "ok": true
+    },
+    {
+      "file": "07.mp3",
+      "before": 3.218,
+      "after": 2.141,
+      "cut": 1.077,
+      "ok": true
+    },
+    {
+      "file": "08.mp3",
+      "before": 2.858,
+      "after": 1.723,
+      "cut": 1.134,
+      "ok": true
+    },
+    {
+      "file": "09.mp3",
+      "before": 3.002,
+      "after": 1.846,
+      "cut": 1.155,
+      "ok": true
+    },
+    {
+      "file": "11.mp3",
+      "before": 3.002,
+      "after": 1.909,
+      "cut": 1.093,
+      "ok": true
+    },
+    {
+      "file": "12.mp3",
+      "before": 2.618,
+      "after": 1.516,
+      "cut": 1.102,
+      "ok": true
+    },
+    {
+      "file": "13.mp3",
+      "before": 2.282,
+      "after": 1.132,
+      "cut": 1.15,
+      "ok": true
+    },
+    {
+      "file": "14.mp3",
+      "before": 2.762,
+      "after": 1.516,
+      "cut": 1.246,
+      "ok": true
+    },
+    {
+      "file": "15.mp3",
+      "before": 2.594,
+      "after": 1.415,
+      "cut": 1.179,
+      "ok": true
+    },
+    {
+      "file": "16.mp3",
+      "before": 2.762,
+      "after": 1.458,
+      "cut": 1.303,
+      "ok": true
+    },
+    {
+      "file": "17.mp3",
+      "before": 3.338,
+      "after": 2.2,
+      "cut": 1.138,
+      "ok": true
+    },
+    {
+      "file": "18.mp3",
+      "before": 3.122,
+      "after": 2.006,
+      "cut": 1.116,
+      "ok": true
+    },
+    {
+      "file": "19.mp3",
+      "before": 3.386,
+      "after": 2.242,
+      "cut": 1.143,
+      "ok": true
+    },
+    {
+      "file": "20.mp3",
+      "before": 2.906,
+      "after": 1.741,
+      "cut": 1.164,
+      "ok": true
+    },
+    {
+      "file": "21.mp3",
+      "before": 3.05,
+      "after": 1.948,
+      "cut": 1.102,
+      "ok": true
+    },
+    {
+      "file": "22.mp3",
+      "before": 3.218,
+      "after": 2.092,
+      "cut": 1.126,
+      "ok": true
+    },
+    {
+      "file": "23.mp3",
+      "before": 4.466,
+      "after": 3.316,
+      "cut": 1.15,
+      "ok": true
+    },
+    {
+      "file": "24.mp3",
+      "before": 3.002,
+      "after": 1.869,
+      "cut": 1.133,
+      "ok": true
+    },
+    {
+      "file": "25.mp3",
+      "before": 3.482,
+      "after": 2.316,
+      "cut": 1.165,
+      "ok": true
+    }
+  ],
+  "female": [
+    {
+      "file": "01.mp3",
+      "before": 4.37,
+      "after": 3.593,
+      "cut": 0.776,
+      "ok": true
+    },
+    {
+      "file": "02.mp3",
+      "before": 4.082,
+      "after": 3.307,
+      "cut": 0.775,
+      "ok": true
+    },
+    {
+      "file": "03.mp3",
+      "before": 2.57,
+      "after": 1.808,
+      "cut": 0.762,
+      "ok": true
+    },
+    {
+      "file": "04.mp3",
+      "before": 2.546,
+      "after": 1.751,
+      "cut": 0.795,
+      "ok": true
+    },
+    {
+      "file": "05.mp3",
+      "before": 2.546,
+      "after": 1.761,
+      "cut": 0.785,
+      "ok": true
+    },
+    {
+      "file": "06.mp3",
+      "before": 2.33,
+      "after": 1.582,
+      "cut": 0.747,
+      "ok": true
+    },
+    {
+      "file": "07.mp3",
+      "before": 3.122,
+      "after": 2.356,
+      "cut": 0.766,
+      "ok": true
+    },
+    {
+      "file": "08.mp3",
+      "before": 2.618,
+      "after": 1.842,
+      "cut": 0.775,
+      "ok": true
+    },
+    {
+      "file": "09.mp3",
+      "before": 2.93,
+      "after": 2.166,
+      "cut": 0.764,
+      "ok": true
+    },
+    {
+      "file": "11.mp3",
+      "before": 2.69,
+      "after": 1.948,
+      "cut": 0.742,
+      "ok": true
+    },
+    {
+      "file": "12.mp3",
+      "before": 2.426,
+      "after": 1.673,
+      "cut": 0.753,
+      "ok": true
+    },
+    {
+      "file": "13.mp3",
+      "before": 2.114,
+      "after": 1.326,
+      "cut": 0.788,
+      "ok": true
+    },
+    {
+      "file": "14.mp3",
+      "before": 2.642,
+      "after": 1.865,
+      "cut": 0.777,
+      "ok": true
+    },
+    {
+      "file": "15.mp3",
+      "before": 2.354,
+      "after": 1.573,
+      "cut": 0.781,
+      "ok": true
+    },
+    {
+      "file": "16.mp3",
+      "before": 2.618,
+      "after": 1.828,
+      "cut": 0.789,
+      "ok": true
+    },
+    {
+      "file": "17.mp3",
+      "before": 2.906,
+      "after": 2.127,
+      "cut": 0.779,
+      "ok": true
+    },
+    {
+      "file": "18.mp3",
+      "before": 2.642,
+      "after": 1.867,
+      "cut": 0.775,
+      "ok": true
+    },
+    {
+      "file": "19.mp3",
+      "before": 3.29,
+      "after": 2.485,
+      "cut": 0.804,
+      "ok": true
+    },
+    {
+      "file": "20.mp3",
+      "before": 2.69,
+      "after": 1.879,
+      "cut": 0.81,
+      "ok": true
+    },
+    {
+      "file": "21.mp3",
+      "before": 2.666,
+      "after": 1.887,
+      "cut": 0.779,
+      "ok": true
+    },
+    {
+      "file": "22.mp3",
+      "before": 3.05,
+      "after": 2.284,
+      "cut": 0.766,
+      "ok": true
+    },
+    {
+      "file": "23.mp3",
+      "before": 4.274,
+      "after": 3.492,
+      "cut": 0.781,
+      "ok": true
+    },
+    {
+      "file": "24.mp3",
+      "before": 2.81,
+      "after": 1.996,
+      "cut": 0.814,
+      "ok": true
+    },
+    {
+      "file": "25.mp3",
+      "before": 3.026,
+      "after": 2.253,
+      "cut": 0.773,
+      "ok": true
+    }
+  ]
+}
