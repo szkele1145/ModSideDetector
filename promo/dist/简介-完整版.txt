@@ -1,0 +1,37 @@
+【这是什么】
+ModSideDetector 是一个检测 Minecraft 模组「运行侧别」的桌面工具：判断每个 mod 属于纯客户端、纯服务端，还是双端都要装。
+
+【它解决什么】
+整合包作者手工分辨 mod 侧别极耗时且容易错：
+· 装多了 —— 玩家白下载几百 MB
+· 装少了 —— 客户端或服务端缺 mod，直接崩游戏
+
+现有方案（Modrinth 的 client_side / server_side）由 mod 作者自己填，经常不准，这正是本工具要改进的环节。
+
+【核心特性】
+· 多源交叉判定：MC 百科「运行环境」+ Modrinth 侧别字段 + jar 内静态特征，三个来源互相印证，而不是只听一家之言
+· 保守优先：没有明确依据绝不判「纯服务端」；判不了就默认双端 —— 代价不对等，多装一个只是浪费带宽，少装一个直接崩游戏
+· 冲突高亮：两个数据源结论相反时，不猜谁更权威，判双端并请你人工确认
+· 人工复核永久生效：双击改判，结论写进缓存，下次扫描直接沿用，永远最高优先级
+· 一键分类：按结论分出 client-mods / server-mods / both-mods 三个目录，默认只复制不移动，同名不同内容绝不覆盖
+· 与 AutoSync 联动：导出 side-report.json，或通过 MSFP 的 REPORT 命令直接上报给服务端
+
+【实测数据】（151 个真实 NeoForge 1.21.1 模组 / 817 MB 测试集）
+· 人工确认基准集准确率：70 / 70 = 100%
+· 误判为纯服务端的数量：0
+· Modrinth 命中率：120 / 151 = 79.5%
+· 单元测试：65 个用例全绿
+· 首次全量扫描约 4.3 分钟（MC 百科串行限流 0.6 秒/请求），第二次走缓存 0.1 秒
+
+【怎么用】
+· 图形界面：选 mods 文件夹 → 扫描 → 表格排序/筛选、冲突行高亮、双击人工改判、一键导出报告
+· 命令行：python -m src scan "D:\mc\mods"
+· 免安装：单个 exe 双击即用，不需要装 Python
+
+【相关链接】
+· 本工具仓库：https://github.com/szkele1145/ModSideDetector
+· 在线文档：https://szkele1145.github.io/ModSideDetector/
+· 配套项目 AutoSync（整合包自动同步）仓库：https://github.com/szkele1145/AutoSync
+· AutoSync 宣传片：https://www.bilibili.com/video/BV1QgHZ6TEjY
+
+本项目由 DeepSeek-V4.1-Flash 制作。

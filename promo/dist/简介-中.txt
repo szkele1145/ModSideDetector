@@ -1,0 +1,16 @@
+ModSideDetector —— 检测 Minecraft 模组「运行侧别」的桌面工具：判断每个 mod 属于纯客户端、纯服务端，还是双端都要装。
+
+【为什么需要】
+装多了，玩家白下载几百 MB；装少了，服务端缺 mod 直接崩游戏。现有方案的侧别字段由 mod 作者自填，经常不准。
+
+【它怎么做】
+MC 百科「运行环境」+ Modrinth 侧别字段 + jar 内静态特征，三源交叉判定；没有明确依据绝不判「纯服务端」，判不了就默认双端，两源冲突时高亮提示人工确认。判完可一键导出报告或按侧别分类（默认只复制不移动）。
+
+【实测】151 个真实模组：人工确认基准集 70/70 全对，误判纯服务端 0 个。
+
+【链接】
+仓库 github.com/szkele1145/ModSideDetector
+文档 szkele1145.github.io/ModSideDetector
+配套项目 AutoSync 宣传片：BV1QgHZ6TEjY
+
+本项目由 DeepSeek-V4.1-Flash 制作。
