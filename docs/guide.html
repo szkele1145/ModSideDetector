@@ -214,6 +214,10 @@ python <span class="hl-k">-m</span> src cache -<span class="hl-k">-clear</span><
 <td>关闭对应数据源</td>
 </tr>
 <tr>
+<td><code>--mcmod-scope missing</code></td>
+<td><strong>加速</strong>：MC 百科只查 Modrinth 没给出结论的那些（约 1/5），151 个 mod 从 ~4.3 分钟降到 ~1 分钟；代价是放弃这部分的双源交叉验证</td>
+</tr>
+<tr>
 <td><code>--offline</code></td>
 <td>完全离线（等价于关掉 mcmod + Modrinth）</td>
 </tr>
@@ -227,6 +231,11 @@ python <span class="hl-k">-m</span> src cache -<span class="hl-k">-clear</span><
 </tr>
 </tbody>
 </table></div>
+<blockquote>
+<p><strong>关于扫描速度</strong>：MC 百科必须<strong>串行限流 0.6 秒/请求</strong>（HANDOFF 红线，不能用并发去压对方服务器），
+所以首次全量扫描的耗时有下限。第二次扫描走缓存，几秒即可完成。
+赶时间就用 <code>--mcmod-scope missing</code>，或在 GUI 里打开「mcmod 只补缺失（快）」。</p>
+</blockquote>
 <hr>
 <h2 id="判定结论怎么读">判定结论怎么读</h2>
 <div class="table-wrap"><table>
@@ -418,6 +427,11 @@ python <span class="hl-k">-m</span> src scan <span class="hl-s">"D:\mc\mods"</sp
 <td>数据源开关</td>
 </tr>
 <tr>
+<td><code>mcmod_scope</code></td>
+<td><code>"all"</code></td>
+<td>MC 百科查询范围：<code>all</code> 每个都查；<code>missing</code> 只补 Modrinth 没结论的（快，牺牲部分交叉验证）</td>
+</tr>
+<tr>
 <td><code>mcmod_min_interval</code></td>
 <td><code>0.6</code></td>
 <td>mcmod 抓取间隔（秒），<strong>调小会被对方限流</strong></td>
@@ -436,6 +450,16 @@ python <span class="hl-k">-m</span> src scan <span class="hl-s">"D:\mc\mods"</sp
 <td><code>proxy</code></td>
 <td><code>""</code></td>
 <td>形如 <code>http://127.0.0.1:7890</code></td>
+</tr>
+<tr>
+<td><code>autosync_report_enabled</code></td>
+<td><code>false</code></td>
+<td>扫描完自动上报给 AutoSync（默认关）</td>
+</tr>
+<tr>
+<td><code>autosync_host</code> / <code>autosync_port</code> / <code>autosync_token</code></td>
+<td><code>""</code> / <code>8123</code> / <code>""</code></td>
+<td>AutoSync 地址、MSFP 端口与共享令牌</td>
 </tr>
 </tbody>
 </table></div>

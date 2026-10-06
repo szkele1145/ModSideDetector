@@ -95,9 +95,14 @@ python -m src cache --clear
 | `--upload-file <路径>` | 不上报本次扫描结果，改为把指定文件（如 `side-report.json`）发给 AutoSync |
 | `--limit N` | 只扫描前 N 个 jar（冒烟测试用） |
 | `--no-mcmod` / `--no-modrinth` / `--no-heuristics` | 关闭对应数据源 |
+| `--mcmod-scope missing` | **加速**：MC 百科只查 Modrinth 没给出结论的那些（约 1/5），151 个 mod 从 ~4.3 分钟降到 ~1 分钟；代价是放弃这部分的双源交叉验证 |
 | `--offline` | 完全离线（等价于关掉 mcmod + Modrinth） |
 | `--refresh` | 忽略缓存重新查询 |
 | `--min-interval 1.0` | 调大 mcmod 抓取间隔（默认 0.6 秒） |
+
+> **关于扫描速度**：MC 百科必须**串行限流 0.6 秒/请求**（HANDOFF 红线，不能用并发去压对方服务器），
+> 所以首次全量扫描的耗时有下限。第二次扫描走缓存，几秒即可完成。
+> 赶时间就用 `--mcmod-scope missing`，或在 GUI 里打开「mcmod 只补缺失（快）」。
 
 ---
 
@@ -243,10 +248,13 @@ powershell -ExecutionPolicy Bypass -File build.ps1
 | `output_dir` | `""` | 报告输出目录，空 = mods 目录 |
 | `cache_dir` | `""` | 缓存目录，空 = `<程序目录>/cache` |
 | `use_mcmod` / `use_modrinth` / `use_heuristics` | `true` | 数据源开关 |
+| `mcmod_scope` | `"all"` | MC 百科查询范围：`all` 每个都查；`missing` 只补 Modrinth 没结论的（快，牺牲部分交叉验证） |
 | `mcmod_min_interval` | `0.6` | mcmod 抓取间隔（秒），**调小会被对方限流** |
 | `cache_ttl_hours` | `720` | 缓存有效期，`<=0` 表示永不过期 |
 | `unknown_as` | `"both"` | 判不了时怎么办。**只接受 `both` / `unknown`**，写成 `server` 会被强制纠正 |
 | `proxy` | `""` | 形如 `http://127.0.0.1:7890` |
+| `autosync_report_enabled` | `false` | 扫描完自动上报给 AutoSync（默认关） |
+| `autosync_host` / `autosync_port` / `autosync_token` | `""` / `8123` / `""` | AutoSync 地址、MSFP 端口与共享令牌 |
 
 ---
 
