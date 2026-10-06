@@ -297,6 +297,18 @@ class MainWindow(ctk.CTk):
             switch.pack(side="left", padx=(0, 16))
             self.source_switches.append(switch)
 
+        # mcmod 是串行限流（0.6 秒/请求），全量交叉验证要几分钟。
+        # 打开这个开关就只补 Modrinth 没给出结论的那些，用来换速度。
+        self.mcmod_scope_var = tk.BooleanVar(value=str(self.config.mcmod_scope) == "missing")
+        scope_switch = ctk.CTkSwitch(
+            switches,
+            text="mcmod 只补缺失（快）",
+            variable=self.mcmod_scope_var,
+            command=self._on_toggle_sources,
+        )
+        scope_switch.pack(side="left", padx=(0, 16))
+        self.source_switches.append(scope_switch)
+
         appearance_box = ctk.CTkFrame(bar, fg_color="transparent")
         appearance_box.grid(row=1, column=4, padx=(4, 10), pady=(0, 10), sticky="e")
         ctk.CTkLabel(appearance_box, text="外观：").pack(side="left", padx=(0, 6))
@@ -583,6 +595,7 @@ class MainWindow(ctk.CTk):
         self.config.use_mcmod = bool(self.mcmod_var.get())
         self.config.use_modrinth = bool(self.modrinth_var.get())
         self.config.use_heuristics = bool(self.heuristics_var.get())
+        self.config.mcmod_scope = "missing" if self.mcmod_scope_var.get() else "all"
         self._save_config()
 
     def _save_config(self) -> None:

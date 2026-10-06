@@ -139,6 +139,13 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--for-autosync", default="", help="额外写一份 AutoSync 可读的 side-report.json 到该目录")
     scan.add_argument("--limit", type=int, default=0, help="只扫描前 N 个 jar（冒烟测试用）")
     scan.add_argument("--no-mcmod", action="store_true", help="禁用 MC 百科数据源")
+    scan.add_argument(
+        "--mcmod-scope",
+        choices=["all", "missing"],
+        default=None,
+        help="mcmod 查询范围：all=每个 mod 都查（默认，完整交叉验证）；"
+        "missing=只查 Modrinth 没给出结论的（快得多，牺牲部分交叉验证）",
+    )
     scan.add_argument("--no-modrinth", action="store_true", help="禁用 Modrinth 数据源")
     scan.add_argument("--no-heuristics", action="store_true", help="禁用启发式弱信号")
     scan.add_argument("--offline", action="store_true", help="完全离线（等价于禁用 mcmod + Modrinth）")
@@ -217,6 +224,8 @@ def _load(path: Path, args: argparse.Namespace, console: Console) -> Tuple[Confi
             config.use_heuristics = False
         if getattr(args, "no_hash_cache", False):
             config.reuse_jar_hash = False
+        if getattr(args, "mcmod_scope", None):
+            config.mcmod_scope = str(args.mcmod_scope)
         if getattr(args, "min_interval", None) is not None:
             config.mcmod_min_interval = float(args.min_interval)
     if args.command == "scan":

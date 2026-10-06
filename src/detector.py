@@ -493,6 +493,20 @@ class Detector:
         mcmod = self.mcmod()
         if self.config.use_mcmod and not stopped():
             targets = list(infos)
+            if str(self.config.mcmod_scope).lower() == "missing":
+                # 用户选的加速模式：只补 Modrinth 没给出有效结论的那些。
+                # 代价是放弃这部分 mod 的双源交叉验证，所以**默认不开**。
+                targets = [
+                    info
+                    for info in infos
+                    if not (verdicts.get(info.rel, {}).get("modrinth") or SideVerdict()).known
+                ]
+                self._log(
+                    "info",
+                    "mcmod 查询范围=missing：Modrinth 已判定的 {} 个跳过，只查 {} 个".format(
+                        len(infos) - len(targets), len(targets)
+                    ),
+                )
 
             def _mcmod_progress(done: int, total_: int, msg: str) -> None:
                 emit("mcmod", done, total_, msg)

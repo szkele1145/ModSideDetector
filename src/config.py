@@ -36,6 +36,11 @@ class Config:
     use_modrinth: bool = True
     use_mcmod: bool = True
     use_heuristics: bool = True
+    #: mcmod 查询范围：
+    #: ``all``（默认）= 每个 mod 都查 MC 百科，拿到完整的双源交叉验证；
+    #: ``missing`` = 只查 Modrinth 没给出有效结论的那些（约 1/5），快得多，
+    #: 但放弃了一部分交叉验证 —— 这是**用户可选**的加速开关，不是默认行为。
+    mcmod_scope: str = "all"
 
     # --- mcmod --------------------------------------------------------
     #: 抓取间隔（秒）。实测 0.6 秒/请求安全，**不要并发**
@@ -84,6 +89,10 @@ class Config:
         # 铁律：不确定项绝不允许落到 server（会让客户端缺 mod 崩游戏）
         if str(self.unknown_as).strip().lower() not in ("both", "unknown"):
             self.unknown_as = "both"
+        # mcmod 查询范围只认两个值，写错就退回默认的完整交叉验证
+        if str(self.mcmod_scope).strip().lower() not in ("all", "missing"):
+            self.mcmod_scope = "all"
+        self.mcmod_scope = str(self.mcmod_scope).strip().lower()
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)

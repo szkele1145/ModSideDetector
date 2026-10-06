@@ -5,6 +5,7 @@
   "use_modrinth": true,
   "use_mcmod": true,
   "use_heuristics": true,
+  "mcmod_scope": "all",
   "mcmod_min_interval": 0.6,
   "mcmod_timeout": 20.0,
   "mcmod_max_retries": 3,
