@@ -1,0 +1,35 @@
+{
+  "_readme": [
+    "人工确认的侧别基准测试集。key = jar 文件名里出现的唯一片段（小写匹配），value = 人工确认的真实侧别。",
+    "side 取值：client（纯客户端）/ server（纯服务端）/ both（双端）。",
+    "用途：tests/test_accuracy.py 用它计算准确率，并强制校验「误判成 server 的数量必须为 0」。",
+    "注意：HANDOFF.md 2.1 节表格里的「铷」与「锂」classId 都写成 36，属笔误，不可直接当基准。",
+    "下面的条目均为领域知识可直接判定、且有 Modrinth/mcmod 依据交叉印证的高确定性样本。"
+  ],
+  "cases": {
+    "skinlayers3d": "client",
+    "sodium-neoforge": "client",
+    "reeses-sodium-options": "client",
+    "lambdynamiclights": "client",
+    "entityculling": "client",
+    "xaerominimap": "client",
+    "xaeroworldmap": "client",
+    "betterpingdisplay": "client",
+    "forgematica": "client",
+    "flashback": "client",
+    "axiom": "client",
+    "customskinloader": "client",
+    "jade": "both",
+    "worldedit-mod": "both",
+    "create-1.21.1": "both",
+    "framedblocks": "both",
+    "c2me": "both",
+    "modernfix": "both",
+    "lithium": "both",
+    "ferritecore": "both",
+    "servercore": "server",
+    "minimotd": "server",
+    "bettertab": "server",
+    "cbcperipheral": "server"
+  }
+}

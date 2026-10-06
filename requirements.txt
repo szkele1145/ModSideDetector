@@ -1,0 +1,21 @@
+# ModSideDetector 依赖清单
+# 要求 Python 3.11+（实测环境：Python 3.14，Windows 10/11 x64）
+#
+# 安装：
+#   python -m pip install -r requirements.txt
+# 只装运行依赖（不打包）：
+#   python -m pip install customtkinter
+
+# ---------------------------------------------------------------- 运行依赖
+customtkinter>=5.2.2      # GUI 框架（基于标准库 tkinter，无需额外运行时）
+darkdetect>=0.8.0         # customtkinter 的依赖，显式列出避免解析不到
+tkinterdnd2>=0.4.0        # 【可选】拖拽文件夹进窗口；装不上程序照常运行（软依赖）
+
+# ---------------------------------------------------------------- 打包依赖
+# 只在需要生成 exe 时安装：python -m pip install pyinstaller
+pyinstaller>=6.6.0        # 打包成 Windows exe；本项目用 --onedir --windowed
+
+# ---------------------------------------------------------------- 说明
+# * 网络请求只用标准库 urllib，不依赖 requests（减小打包体积）。
+# * tkinter 是 Python 标准库的一部分；Windows 官方安装包默认自带。
+#   若报 "No module named tkinter"，请重装 Python 并勾选 tcl/tk 组件。

@@ -1,0 +1,23 @@
+{
+  "mods_dir": "",
+  "output_dir": "",
+  "cache_dir": "",
+  "use_modrinth": true,
+  "use_mcmod": true,
+  "use_heuristics": true,
+  "mcmod_min_interval": 0.6,
+  "mcmod_timeout": 20.0,
+  "mcmod_max_retries": 3,
+  "mcmod_base": "https://www.mcmod.cn",
+  "modrinth_api_base": "https://api.modrinth.com/v2",
+  "modrinth_batch_size": 100,
+  "modrinth_timeout": 20.0,
+  "modrinth_max_retries": 3,
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+  "proxy": "",
+  "unknown_as": "both",
+  "cache_ttl_hours": 720.0,
+  "reuse_jar_hash": true,
+  "appearance": "dark",
+  "ui_max_rows": 2000
+}
