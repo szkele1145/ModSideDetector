@@ -9,340 +9,436 @@
       {
         "n": 1,
         "start": 0,
-        "d": 4860,
+        "d": 4650,
         "file": "01.mp3",
-        "text": "ModSideDetector 是一个检测 mod 侧别的软件"
+        "text": "ModSideDetector 是一个检测 mod 侧别的软件",
+        "audio_ms": 3530,
+        "margin_ms": 1120
       },
       {
         "n": 2,
-        "start": 4860,
-        "d": 4580,
+        "start": 4650,
+        "d": 4360,
         "file": "02.mp3",
-        "text": "它判断每个 mod 属于客户端还是服务端"
+        "text": "它判断每个 mod 属于客户端还是服务端",
+        "audio_ms": 3190,
+        "margin_ms": 1170
       },
       {
         "n": 3,
-        "start": 9440,
-        "d": 3090,
+        "start": 9010,
+        "d": 2870,
         "file": "03.mp3",
-        "text": "装多了，玩家白下载"
+        "text": "装多了，玩家白下载",
+        "audio_ms": 1820,
+        "margin_ms": 1050
       },
       {
         "n": 4,
-        "start": 12530,
-        "d": 3060,
+        "start": 11880,
+        "d": 2800,
         "file": "04.mp3",
-        "text": "服务端缺 mod，会崩"
+        "text": "服务端缺 mod，会崩",
+        "audio_ms": 1800,
+        "margin_ms": 1000
       },
       {
         "n": 5,
-        "start": 15590,
-        "d": 3040,
+        "start": 14680,
+        "d": 2820,
         "file": "05.mp3",
-        "text": "这就是玩家看到的报错"
+        "text": "这就是玩家看到的报错",
+        "audio_ms": 1460,
+        "margin_ms": 1360
       },
       {
         "n": 6,
-        "start": 18630,
-        "d": 2850,
+        "start": 17500,
+        "d": 2630,
         "file": "06.mp3",
-        "text": "每个 mod 都有侧别"
+        "text": "每个 mod 都有侧别",
+        "audio_ms": 1580,
+        "margin_ms": 1050
       },
       {
         "n": 7,
-        "start": 21480,
-        "d": 3620,
+        "start": 20130,
+        "d": 3420,
         "file": "07.mp3",
-        "text": "Modrinth 的字段，作者自己填"
+        "text": "Modrinth 的字段，作者自己填",
+        "audio_ms": 2210,
+        "margin_ms": 1210
       },
       {
         "n": 8,
-        "start": 25100,
-        "d": 3110,
+        "start": 23550,
+        "d": 2900,
         "file": "08.mp3",
-        "text": "人工分类，一个个查"
+        "text": "人工分类，一个个查",
+        "audio_ms": 1780,
+        "margin_ms": 1120
       },
       {
         "n": 9,
-        "start": 28210,
-        "d": 3420,
+        "start": 26450,
+        "d": 3230,
         "file": "09.mp3",
-        "text": "一百五十一个，手工来一遍"
+        "text": "一百五十一个，手工来一遍",
+        "audio_ms": 1900,
+        "margin_ms": 1330
       },
       {
         "n": 11,
-        "start": 34330,
-        "d": 3210,
+        "start": 32380,
+        "d": 3020,
         "file": "11.mp3",
-        "text": "查 Modrinth，命中八成"
+        "text": "查 Modrinth，命中八成",
+        "audio_ms": 1970,
+        "margin_ms": 1050
       },
       {
         "n": 12,
-        "start": 37540,
-        "d": 2940,
+        "start": 35400,
+        "d": 2730,
         "file": "12.mp3",
-        "text": "mcmod 补剩下三成"
+        "text": "mcmod 补剩下三成",
+        "audio_ms": 1580,
+        "margin_ms": 1150
       },
       {
         "n": 13,
-        "start": 40480,
-        "d": 2610,
+        "start": 38130,
+        "d": 2390,
         "file": "13.mp3",
-        "text": "判完直接出报告"
+        "text": "判完直接出报告",
+        "audio_ms": 1200,
+        "margin_ms": 1190
       },
       {
         "n": 14,
-        "start": 43090,
-        "d": 3140,
+        "start": 40520,
+        "d": 2920,
         "file": "14.mp3",
-        "text": "界面里冲突行会高亮"
+        "text": "界面里冲突行会高亮",
+        "audio_ms": 1580,
+        "margin_ms": 1340
       },
       {
         "n": 15,
-        "start": 46230,
-        "d": 2850,
+        "start": 43440,
+        "d": 2630,
         "file": "15.mp3",
-        "text": "双击一行就能改判"
+        "text": "双击一行就能改判",
+        "audio_ms": 1460,
+        "margin_ms": 1170
       },
       {
         "n": 16,
-        "start": 49080,
-        "d": 3090,
+        "start": 46070,
+        "d": 2900,
         "file": "16.mp3",
-        "text": "四个数据源的覆盖率"
+        "text": "四个数据源的覆盖率",
+        "audio_ms": 1510,
+        "margin_ms": 1390
       },
       {
         "n": 17,
-        "start": 52170,
-        "d": 3520,
+        "start": 48970,
+        "d": 3260,
         "file": "17.mp3",
-        "text": "人工确认基准集，全对"
+        "text": "人工确认基准集，全对",
+        "audio_ms": 2260,
+        "margin_ms": 1000
       },
       {
         "n": 18,
-        "start": 55690,
-        "d": 3300,
+        "start": 52230,
+        "d": 3060,
         "file": "18.mp3",
-        "text": "误判纯服务端，零个"
+        "text": "误判纯服务端，零个",
+        "audio_ms": 2060,
+        "margin_ms": 1000
       },
       {
         "n": 19,
-        "start": 58990,
-        "d": 3780,
+        "start": 55290,
+        "d": 3540,
         "file": "19.mp3",
-        "text": "首次 4 分钟，之后 0.1 秒"
+        "text": "首次 4 分钟，之后 0.1 秒",
+        "audio_ms": 2300,
+        "margin_ms": 1240
       },
       {
         "n": 20,
-        "start": 62770,
-        "d": 3180,
+        "start": 58830,
+        "d": 2940,
         "file": "20.mp3",
-        "text": "搜 sodium 出来植物魔法"
+        "text": "搜 sodium 出来植物魔法",
+        "audio_ms": 1800,
+        "margin_ms": 1140
       },
       {
         "n": 21,
-        "start": 65950,
-        "d": 3230,
+        "start": 61770,
+        "d": 3020,
         "file": "21.mp3",
-        "text": "标题校验，宁可不判"
+        "text": "标题校验，宁可不判",
+        "audio_ms": 2020,
+        "margin_ms": 1000
       },
       {
         "n": 22,
-        "start": 69180,
-        "d": 3540,
+        "start": 64790,
+        "d": 3350,
         "file": "22.mp3",
-        "text": "冲突时不猜，保守判双端"
+        "text": "冲突时不猜，保守判双端",
+        "audio_ms": 2160,
+        "margin_ms": 1190
       },
       {
         "n": 23,
-        "start": 72720,
-        "d": 4770,
+        "start": 68140,
+        "d": 4550,
         "file": "23.mp3",
-        "text": "exe 可能被杀毒误报，加白名单即可"
+        "text": "exe 可能被杀毒误报，加白名单即可",
+        "audio_ms": 3380,
+        "margin_ms": 1170
       },
       {
         "n": 24,
-        "start": 77490,
-        "d": 3300,
+        "start": 72690,
+        "d": 3060,
         "file": "24.mp3",
-        "text": "报告能直接喂给 AutoSync"
+        "text": "报告能直接喂给 AutoSync",
+        "audio_ms": 1920,
+        "margin_ms": 1140
       },
       {
         "n": 25,
-        "start": 80790,
-        "d": 3660,
+        "start": 75750,
+        "d": 3380,
         "file": "25.mp3",
-        "text": "开源，仓库和文档在下面"
+        "text": "开源，仓库和文档在下面",
+        "audio_ms": 2380,
+        "margin_ms": 1000
       }
     ],
     "female": [
       {
         "n": 1,
         "start": 0,
-        "d": 4860,
+        "d": 4650,
         "file": "01.mp3",
-        "text": "ModSideDetector 是一个检测 mod 侧别的软件"
+        "text": "ModSideDetector 是一个检测 mod 侧别的软件",
+        "audio_ms": 3650,
+        "margin_ms": 1000
       },
       {
         "n": 2,
-        "start": 4860,
-        "d": 4580,
+        "start": 4650,
+        "d": 4360,
         "file": "02.mp3",
-        "text": "它判断每个 mod 属于客户端还是服务端"
+        "text": "它判断每个 mod 属于客户端还是服务端",
+        "audio_ms": 3360,
+        "margin_ms": 1000
       },
       {
         "n": 3,
-        "start": 9440,
-        "d": 3090,
+        "start": 9010,
+        "d": 2870,
         "file": "03.mp3",
-        "text": "装多了，玩家白下载"
+        "text": "装多了，玩家白下载",
+        "audio_ms": 1870,
+        "margin_ms": 1000
       },
       {
         "n": 4,
-        "start": 12530,
-        "d": 3060,
+        "start": 11880,
+        "d": 2800,
         "file": "04.mp3",
-        "text": "服务端缺 mod，会崩"
+        "text": "服务端缺 mod，会崩",
+        "audio_ms": 1800,
+        "margin_ms": 1000
       },
       {
         "n": 5,
-        "start": 15590,
-        "d": 3040,
+        "start": 14680,
+        "d": 2820,
         "file": "05.mp3",
-        "text": "这就是玩家看到的报错"
+        "text": "这就是玩家看到的报错",
+        "audio_ms": 1820,
+        "margin_ms": 1000
       },
       {
         "n": 6,
-        "start": 18630,
-        "d": 2850,
+        "start": 17500,
+        "d": 2630,
         "file": "06.mp3",
-        "text": "每个 mod 都有侧别"
+        "text": "每个 mod 都有侧别",
+        "audio_ms": 1630,
+        "margin_ms": 1000
       },
       {
         "n": 7,
-        "start": 21480,
-        "d": 3620,
+        "start": 20130,
+        "d": 3420,
         "file": "07.mp3",
-        "text": "Modrinth 的字段，作者自己填"
+        "text": "Modrinth 的字段，作者自己填",
+        "audio_ms": 2420,
+        "margin_ms": 1000
       },
       {
         "n": 8,
-        "start": 25100,
-        "d": 3110,
+        "start": 23550,
+        "d": 2900,
         "file": "08.mp3",
-        "text": "人工分类，一个个查"
+        "text": "人工分类，一个个查",
+        "audio_ms": 1900,
+        "margin_ms": 1000
       },
       {
         "n": 9,
-        "start": 28210,
-        "d": 3420,
+        "start": 26450,
+        "d": 3230,
         "file": "09.mp3",
-        "text": "一百五十一个，手工来一遍"
+        "text": "一百五十一个，手工来一遍",
+        "audio_ms": 2230,
+        "margin_ms": 1000
       },
       {
         "n": 11,
-        "start": 34330,
-        "d": 3210,
+        "start": 32380,
+        "d": 3020,
         "file": "11.mp3",
-        "text": "查 Modrinth，命中八成"
+        "text": "查 Modrinth，命中八成",
+        "audio_ms": 2020,
+        "margin_ms": 1000
       },
       {
         "n": 12,
-        "start": 37540,
-        "d": 2940,
+        "start": 35400,
+        "d": 2730,
         "file": "12.mp3",
-        "text": "mcmod 补剩下三成"
+        "text": "mcmod 补剩下三成",
+        "audio_ms": 1730,
+        "margin_ms": 1000
       },
       {
         "n": 13,
-        "start": 40480,
-        "d": 2610,
+        "start": 38130,
+        "d": 2390,
         "file": "13.mp3",
-        "text": "判完直接出报告"
+        "text": "判完直接出报告",
+        "audio_ms": 1390,
+        "margin_ms": 1000
       },
       {
         "n": 14,
-        "start": 43090,
-        "d": 3140,
+        "start": 40520,
+        "d": 2920,
         "file": "14.mp3",
-        "text": "界面里冲突行会高亮"
+        "text": "界面里冲突行会高亮",
+        "audio_ms": 1920,
+        "margin_ms": 1000
       },
       {
         "n": 15,
-        "start": 46230,
-        "d": 2850,
+        "start": 43440,
+        "d": 2630,
         "file": "15.mp3",
-        "text": "双击一行就能改判"
+        "text": "双击一行就能改判",
+        "audio_ms": 1630,
+        "margin_ms": 1000
       },
       {
         "n": 16,
-        "start": 49080,
-        "d": 3090,
+        "start": 46070,
+        "d": 2900,
         "file": "16.mp3",
-        "text": "四个数据源的覆盖率"
+        "text": "四个数据源的覆盖率",
+        "audio_ms": 1900,
+        "margin_ms": 1000
       },
       {
         "n": 17,
-        "start": 52170,
-        "d": 3520,
+        "start": 48970,
+        "d": 3260,
         "file": "17.mp3",
-        "text": "人工确认基准集，全对"
+        "text": "人工确认基准集，全对",
+        "audio_ms": 2180,
+        "margin_ms": 1080
       },
       {
         "n": 18,
-        "start": 55690,
-        "d": 3300,
+        "start": 52230,
+        "d": 3060,
         "file": "18.mp3",
-        "text": "误判纯服务端，零个"
+        "text": "误判纯服务端，零个",
+        "audio_ms": 1920,
+        "margin_ms": 1140
       },
       {
         "n": 19,
-        "start": 58990,
-        "d": 3780,
+        "start": 55290,
+        "d": 3540,
         "file": "19.mp3",
-        "text": "首次 4 分钟，之后 0.1 秒"
+        "text": "首次 4 分钟，之后 0.1 秒",
+        "audio_ms": 2540,
+        "margin_ms": 1000
       },
       {
         "n": 20,
-        "start": 62770,
-        "d": 3180,
+        "start": 58830,
+        "d": 2940,
         "file": "20.mp3",
-        "text": "搜 sodium 出来植物魔法"
+        "text": "搜 sodium 出来植物魔法",
+        "audio_ms": 1940,
+        "margin_ms": 1000
       },
       {
         "n": 21,
-        "start": 65950,
-        "d": 3230,
+        "start": 61770,
+        "d": 3020,
         "file": "21.mp3",
-        "text": "标题校验，宁可不判"
+        "text": "标题校验，宁可不判",
+        "audio_ms": 1940,
+        "margin_ms": 1080
       },
       {
         "n": 22,
-        "start": 69180,
-        "d": 3540,
+        "start": 64790,
+        "d": 3350,
         "file": "22.mp3",
-        "text": "冲突时不猜，保守判双端"
+        "text": "冲突时不猜，保守判双端",
+        "audio_ms": 2350,
+        "margin_ms": 1000
       },
       {
         "n": 23,
-        "start": 72720,
-        "d": 4770,
+        "start": 68140,
+        "d": 4550,
         "file": "23.mp3",
-        "text": "exe 可能被杀毒误报，加白名单即可"
+        "text": "exe 可能被杀毒误报，加白名单即可",
+        "audio_ms": 3550,
+        "margin_ms": 1000
       },
       {
         "n": 24,
-        "start": 77490,
-        "d": 3300,
+        "start": 72690,
+        "d": 3060,
         "file": "24.mp3",
-        "text": "报告能直接喂给 AutoSync"
+        "text": "报告能直接喂给 AutoSync",
+        "audio_ms": 2060,
+        "margin_ms": 1000
       },
       {
         "n": 25,
-        "start": 80790,
-        "d": 3660,
+        "start": 75750,
+        "d": 3380,
         "file": "25.mp3",
-        "text": "开源，仓库和文档在下面"
+        "text": "开源，仓库和文档在下面",
+        "audio_ms": 2300,
+        "margin_ms": 1080
       }
     ]
   }

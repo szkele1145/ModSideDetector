@@ -50,3 +50,6 @@ venv/
 .idea/
 Thumbs.db
 desktop.ini
+
+# 修正时间轴前备份的旧 manifest（诊断用，不入库）
+promo/audio/manifest.old.json
