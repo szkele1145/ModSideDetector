@@ -388,4 +388,10 @@ python -m unittest tests.test_accuracy -v
 
 > ⚠️ `docs/判定策略.md` 是文档**源文件**，必须保留 —— 不要因为它生成了 `strategy.html` 就把它删掉。
 
+---
+
+## 制作
+
+**本项目由 DeepSeek-V4.1-Flash 制作。**
+
 发布方式（GitHub Pages 手动配置，**不使用 Actions**）见 [docs/README-PAGES.md](docs/README-PAGES.md)。
