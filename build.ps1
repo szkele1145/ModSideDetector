@@ -100,7 +100,9 @@ $pyArgs = @(
     "-m", "PyInstaller",
     "--noconfirm",
     "--clean",
-    "--onedir",                       # 优先 onedir：杀毒误报率低于 onefile
+    "--onefile",                      # 单文件：双击即用，不依赖同目录的 _internal\
+                                      # （onefile 首次启动会解压到临时目录，比 onedir 慢几秒，
+                                      #   且杀毒误报率略高 —— 用 --noupx 缓解）
     "--windowed",                     # GUI 程序，不带控制台窗口
     "--noupx",                        # 不用 UPX 压缩，降低杀软误报
     "--name", "ModSideDetector",
@@ -167,23 +169,22 @@ if ($pyExitCode -ne 0) {
 }
 
 # ---- 结果 -------------------------------------------------------------------
-$ExePath = Join-Path $DistDir "ModSideDetector\ModSideDetector.exe"
+$ExePath = Join-Path $DistDir "ModSideDetector.exe"
 if (-not (Test-Path $ExePath)) {
     throw "打包命令返回成功，但没有找到产物：$ExePath"
 }
 
-$sizeMb = [math]::Round(((Get-ChildItem (Split-Path -Parent $ExePath) -Recurse -File |
-    Measure-Object -Property Length -Sum).Sum / 1MB), 1)
+$sizeMb = [math]::Round(((Get-Item $ExePath).Length / 1MB), 1)
 
 Write-Host ""
 Write-Host "=== 打包完成 ===" -ForegroundColor Green
-Write-Host "产物目录: $(Split-Path -Parent $ExePath)"
+Write-Host "产物目录: $DistDir"
 Write-Host "可执行文件: $ExePath"
-Write-Host "目录总大小: $sizeMb MB"
+Write-Host "单文件大小: $sizeMb MB"
 Write-Host ""
 Write-Host "提醒：" -ForegroundColor Yellow
-Write-Host "  * exe 未做代码签名，部分杀毒软件可能误报。缓解：用 onedir（已采用）、"
-Write-Host "    不用 UPX（已采用）、把目录加入白名单，或自行做代码签名。"
+Write-Host "  * exe 未做代码签名，部分杀毒软件可能误报。缓解：用 --onefile（已采用）、"
+Write-Host "    不用 UPX（已采用）、把 exe 加入白名单，或自行做代码签名。"
 Write-Host "  * cache\ 与 config.json 都没有打进包；程序首次运行会在 exe 目录生成 config.json。"
 
 if (-not $SkipSmokeTest) {
